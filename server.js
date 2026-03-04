@@ -1,78 +1,65 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const { createClient } = require('@supabase/supabase-js');
 const cors = require('cors');
 const path = require('path');
+require('dotenv').config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+
+// Supabase Connection
+// The user will need to provide their own keys either via environment variables or hardcoded here temporarily
+const supabaseUrl = process.env.SUPABASE_URL || 'https://utgvmwqtioghilavuceo.supabase.co';
+const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_hwHJAWfiOu82lxdweW4TQQ_KTvicO2-';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-// Serve static files from the current directory
 app.use(express.static(__dirname));
 
-// Initialize SQLite database
-const dbFile = path.join(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(dbFile, (err) => {
-    if (err) {
-        console.error('Error opening database', err.message);
-    } else {
-        console.log('Connected to the SQLite database.');
-        // Create table if it doesn't exist
-        db.run(`CREATE TABLE IF NOT EXISTS comments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            author TEXT NOT NULL,
-            text TEXT NOT NULL,
-            date TEXT NOT NULL
-        )`);
-    }
-});
-
 // API Routes
+app.get('/api/comments', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('comments')
+            .select('*')
+            .order('id', { ascending: false });
 
-// Get all comments
-app.get('/api/comments', (req, res) => {
-    db.all("SELECT * FROM comments ORDER BY id DESC", [], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json({
-            message: "success",
-            data: rows
-        });
-    });
+        if (error) throw error;
+
+        res.json({ message: "success", data });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-// Add a new comment
-app.post('/api/comments', (req, res) => {
+app.post('/api/comments', async (req, res) => {
     const { author, text, date } = req.body;
+
     if (!author || !text) {
-        res.status(400).json({ error: 'Author and text are required.' });
-        return;
+        return res.status(400).json({ error: 'Author and text are required.' });
     }
 
-    const sql = "INSERT INTO comments (author, text, date) VALUES (?,?,?)";
-    const params = [author, text, date];
-    db.run(sql, params, function (err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
+    try {
+        const { data, error } = await supabase
+            .from('comments')
+            .insert([{ author, text, date }])
+            .select();
+
+        if (error) throw error;
+
         res.json({
             message: "success",
-            data: {
-                id: this.lastID,
-                author,
-                text,
-                date
-            }
+            data: data[0]
         });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Start the server
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
