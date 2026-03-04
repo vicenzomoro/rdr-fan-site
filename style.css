@@ -224,6 +224,69 @@ nav a:hover::after {
     color: var(--text-muted);
 }
 
+/* MODS SECTION */
+.mods-section {
+    padding: 100px 50px;
+    max-width: 1200px;
+    margin: 0 auto;
+    border-top: 1px solid var(--glass-border);
+}
+
+.mods-container {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.mod-card {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-top: 5px solid #ffd700;
+    padding: 30px;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 450px;
+    text-decoration: none;
+    color: var(--text-main);
+    transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.mod-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 40px rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.5);
+    border-top: 5px solid #ffea00;
+}
+
+.mod-card h3 {
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+    color: #fff;
+}
+
+.mod-card p {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+}
+
+.visit-link {
+    display: inline-block;
+    color: #ffd700;
+    font-weight: bold;
+    font-family: 'Rye', cursive;
+    text-transform: uppercase;
+    transition: color 0.3s, padding-left 0.3s;
+}
+
+.mod-card:hover .visit-link {
+    color: #ffea00;
+    padding-left: 10px;
+}
+
 /* COMMENTS SECTION */
 .comments-section {
     padding: 100px 50px;
@@ -393,6 +456,10 @@ footer p {
     }
 
     .saga-section {
+        padding: 60px 20px;
+    }
+
+    .mods-section {
         padding: 60px 20px;
     }
 
