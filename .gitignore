@@ -1,0 +1,10 @@
+# Ignorar arquivos de dependências do Node.js
+node_modules/
+package-lock.json
+
+# Ignorar o arquivo do banco de dados local
+database.sqlite
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db

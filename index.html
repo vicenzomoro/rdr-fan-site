@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saga Red Dead Redemption - Fan Site</title>
+    <meta name="description" content="Tudo sobre a saga de jogos Red Dead Redemption. Um tributo aos fãs.">
+    <link href="https://fonts.googleapis.com/css2?family=Rye&family=Roboto:wght@300;400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header class="navbar">
+        <div class="logo">RDR FanSite</div>
+        <nav>
+            <a href="#hero">Início</a>
+            <a href="#saga">A Saga</a>
+            <a href="#comments">Comentários</a>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="hero-section">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <h1 class="animate-title">Red Dead Redemption</h1>
+                <p class="animate-subtitle">A grande saga de faroeste redefinida.</p>
+                <a href="#saga" class="cta-button">Explore a História</a>
+            </div>
+        </section>
+
+        <section id="saga" class="saga-section">
+            <h2 class="section-title reveal">A Jornada pelo Velho Oeste</h2>
+
+            <div class="card reveal">
+                <div class="card-content">
+                    <h3>Red Dead Revolver (2004)</h3>
+                    <p>O início de tudo. Acompanhe a história de vingança de Red Harlow, um caçador de recompensas
+                        implacável em busca de justiça no implacável Velho Oeste. Embora com um tom mais arcade, esse
+                        jogo estabeleceu as bases de tiro e duelo para a franquia.</p>
+                </div>
+            </div>
+
+            <div class="card reveal">
+                <div class="card-content">
+                    <h3>Red Dead Redemption (2010)</h3>
+                    <p>Uma obra-prima atemporal. John Marston, um ex-fora da lei, é forçado a caçar seus antigos
+                        companheiros de gangue para salvar sua família. Uma narrativa profunda sobre redenção, o fim de
+                        uma era e o inevitável avanço da civilização moderna.</p>
+                </div>
+            </div>
+
+            <div class="card reveal">
+                <div class="card-content">
+                    <h3>Red Dead Redemption 2 (2018)</h3>
+                    <p>O épico prólogo. Vivencie a história pela perspectiva de Arthur Morgan, o leal braço direito da
+                        gangue de Dutch van der Linde. Um mundo incrivelmente detalhado e imersivo, onde cada escolha
+                        tem peso, e a lealdade é testada em um mundo que não os quer mais.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="comments" class="comments-section reveal">
+            <h2 class="section-title">O que os Fãs Dizem</h2>
+            <div class="comments-container">
+                <form id="comment-form" class="comment-form">
+                    <input type="text" id="author" placeholder="Seu Nome (Cowboy/Cowgirl)" required>
+                    <textarea id="text" rows="4" placeholder="Escreva seu comentário sobre a saga..."
+                        required></textarea>
+                    <button type="submit" class="submit-button">Enviar Relato</button>
+                </form>
+                <div id="comments-list" class="comments-list">
+                    <!-- Comentários renderizados via JS -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Feito por um fã para fãs. Todos os direitos da franquia pertencem à Rockstar Games.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
