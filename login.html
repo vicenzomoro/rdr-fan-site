@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar - RDR Fan Site</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rye&family=Roboto:wght@300;400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .auth-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-top: 5px solid var(--primary-red);
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 4px;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: var(--primary-red);
+        }
+
+        .toggle-auth {
+            text-align: center;
+            margin-top: 20px;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .toggle-auth:hover {
+            color: var(--primary-red);
+        }
+    </style>
+</head>
+
+<body>
+    <header class="navbar">
+        <div class="logo">Acampamento</div>
+        <nav>
+            <a href="index.html">Voltar ao Site</a>
+        </nav>
+    </header>
+
+    <main class="hero-section" style="background: url('hero-bg.png') no-repeat center center/cover;">
+        <div class="hero-overlay"></div>
+        <div class="hero-content" style="width: 100%;">
+
+            <!-- FORMULÁRIO DE LOGIN -->
+            <div id="login-box" class="auth-container">
+                <h2 class="section-title" style="font-size: 2rem; margin-bottom: 30px;">Identifique-se</h2>
+                <form id="auth-login-form">
+                    <input type="text" id="login-username" class="auth-input"
+                        placeholder="Seu apelido (Nome de Usuário)" required>
+                    <input type="password" id="login-password" class="auth-input" placeholder="Sua senha secreta"
+                        required>
+                    <button type="submit" class="submit-button" style="width: 100%;">Entrar no Bando</button>
+                    <p id="login-msg" style="color: #ff4c4c; margin-top: 15px; display: none;"></p>
+                </form>
+                <div class="toggle-auth" onclick="toggleView('register')">Ainda não tem um bando? Registre-se!</div>
+            </div>
+
+            <!-- FORMULÁRIO DE REGISTRO -->
+            <div id="register-box" class="auth-container" style="display: none;">
+                <h2 class="section-title" style="font-size: 2rem; margin-bottom: 30px;">Novo Membro</h2>
+                <form id="auth-register-form">
+                    <input type="text" id="reg-username" class="auth-input" placeholder="Escolha um apelido" required>
+                    <input type="password" id="reg-password" class="auth-input" placeholder="Crie uma senha forte"
+                        required>
+                    <button type="submit" class="submit-button" style="width: 100%;">Juntar-se</button>
+                    <p id="reg-msg" style="color: #ff4c4c; margin-top: 15px; display: none;"></p>
+                </form>
+                <div class="toggle-auth" onclick="toggleView('login')">Já faz parte? Entre aqui.</div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        function toggleView(view) {
+            if (view === 'register') {
+                document.getElementById('login-box').style.display = 'none';
+                document.getElementById('register-box').style.display = 'block';
+            } else {
+                document.getElementById('register-box').style.display = 'none';
+                document.getElementById('login-box').style.display = 'block';
+            }
+        }
+
+        // Login Submit
+        document.getElementById('auth-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = document.getElementById('login-username').value.trim();
+            const pass = document.getElementById('login-password').value.trim();
+            const msg = document.getElementById('login-msg');
+
+            msg.style.display = 'block';
+            msg.style.color = 'var(--text-muted)';
+            msg.innerText = "Verificando cartazes de procurado...";
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('currentUser', user);
+                    window.location.href = 'index.html#comments';
+                } else {
+                    msg.style.color = '#ff4c4c';
+                    msg.innerText = data.error || "Apelido ou senha incorretos.";
+                }
+            } catch (err) {
+                msg.style.color = '#ff4c4c';
+                msg.innerText = "Erro na conexão.";
+            }
+        });
+
+        // Register Submit
+        document.getElementById('auth-register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = document.getElementById('reg-username').value.trim();
+            const pass = document.getElementById('reg-password').value.trim();
+            const msg = document.getElementById('reg-msg');
+
+            msg.style.display = 'block';
+            msg.style.color = 'var(--text-muted)';
+            msg.innerText = "Registrando novo membro...";
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    msg.style.color = '#28a745';
+                    msg.innerText = "Sucesso! Agora você pode entrar.";
+                    setTimeout(() => toggleView('login'), 1500);
+                } else {
+                    msg.style.color = '#ff4c4c';
+                    msg.innerText = data.error || "Erro ao registrar.";
+                }
+            } catch (err) {
+                msg.style.color = '#ff4c4c';
+                msg.innerText = "Erro na conexão.";
+            }
+        });
+    </script>
+</body>
+
+</html>

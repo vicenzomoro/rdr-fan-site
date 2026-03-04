@@ -73,6 +73,12 @@ document.addEventListener("DOMContentLoaded", () => {
     commentForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
+        if (!currentUser) {
+            alert("Apenas membros do bando podem comentar. Registre-se ou faça login primeiro!");
+            window.location.href = 'login.html';
+            return;
+        }
+
         const authorInput = document.getElementById("author");
         const textInput = document.getElementById("text");
 
@@ -112,7 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     commentsList.prepend(commentEl);
 
                     // Clear inputs
-                    authorInput.value = "";
                     textInput.value = "";
 
                     // Success feedback

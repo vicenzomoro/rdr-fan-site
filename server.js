@@ -20,6 +20,47 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // API Routes
+app.post('/api/auth/register', async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Username and password required.' });
+
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .insert([{ username, password }])
+            .select();
+
+        if (error) {
+            if (error.code === '23505') return res.status(400).json({ error: 'Nome de usuário já existe.' });
+            throw error;
+        }
+        res.json({ message: "registered" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('username', username)
+            .eq('password', password);
+
+        if (error) throw error;
+
+        if (data.length > 0) {
+            res.json({ message: "logged_in", username });
+        } else {
+            res.status(401).json({ error: 'Apelido ou senha incorretos.' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/comments', async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -60,9 +101,11 @@ app.post('/api/comments', async (req, res) => {
 });
 
 // Admin Verification Route
+const DEV_MASTER_KEY = "DEV_XERIFE_1899"; // Developer Master Key provided as requested
+
 app.post('/api/admin/verify', (req, res) => {
     const { token } = req.body;
-    if (token === supabaseKey) {
+    if (token === supabaseKey || token === DEV_MASTER_KEY) {
         res.json({ message: "authorized" });
     } else {
         res.status(401).json({ error: "unauthorized" });
@@ -72,7 +115,7 @@ app.post('/api/admin/verify', (req, res) => {
 // Delete Comment Route
 app.delete('/api/comments/:id', async (req, res) => {
     const token = req.headers.authorization;
-    if (token !== supabaseKey) {
+    if (token !== supabaseKey && token !== DEV_MASTER_KEY) {
         return res.status(401).json({ error: "unauthorized" });
     }
 
