@@ -59,6 +59,38 @@ app.post('/api/comments', async (req, res) => {
     }
 });
 
+// Admin Verification Route
+app.post('/api/admin/verify', (req, res) => {
+    const { token } = req.body;
+    if (token === supabaseKey) {
+        res.json({ message: "authorized" });
+    } else {
+        res.status(401).json({ error: "unauthorized" });
+    }
+});
+
+// Delete Comment Route
+app.delete('/api/comments/:id', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== supabaseKey) {
+        return res.status(401).json({ error: "unauthorized" });
+    }
+
+    const { id } = req.params;
+    try {
+        const { error } = await supabase
+            .from('comments')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        res.json({ message: "deleted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

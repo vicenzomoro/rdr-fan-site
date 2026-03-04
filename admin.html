@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Xerife - RDR Fan Site</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rye&family=Roboto:wght@300;400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header class="navbar">
+        <div class="logo">Painel do Xerife</div>
+        <nav>
+            <a href="index.html">Voltar ao Site</a>
+        </nav>
+    </header>
+
+    <main style="padding-top: 100px;">
+        <section id="login-section" class="comments-section" style="min-height: 80vh;">
+            <div class="comments-container">
+                <h2 class="section-title">Área Restrita</h2>
+                <div class="comment-form">
+                    <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px;">Identifique-se com a
+                        chave mestra da nuvem (API Key).</p>
+                    <form id="login-form" style="display: flex; flex-direction: column; gap: 15px;">
+                        <input type="password" id="admin-pass" placeholder="Chave da Nuvem (API Key)" required
+                            style="width: 100%; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 4px; color: #fff; font-family: inherit; font-size: 1rem;">
+                        <button type="submit" class="submit-button">Entrar</button>
+                    </form>
+                    <p id="login-error"
+                        style="color: #ff4c4c; display: none; margin-top: 15px; text-align: center; font-weight: bold;">
+                        Chave incorreta, forasteiro!</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="panel-section" class="comments-section" style="display: none; min-height: 80vh;">
+            <div class="comments-container">
+                <h2 class="section-title">Moderar Comentários</h2>
+                <div id="admin-comments-list" class="comments-list">
+                    <!-- Comentários renderizados aqui -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Apenas o Xerife tem acesso a esta área.</p>
+    </footer>
+
+    <script src="admin.js"></script>
+</body>
+
+</html>
