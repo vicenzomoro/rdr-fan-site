@@ -307,11 +307,13 @@ app.get('/api/admin/feedback', async (req, res) => {
 
 // AI Chat Route (Powered by Google Gemini)
 const GEMINI_API_KEY = "AIzaSyCnYO3mIUZ_a72obYofTi686elti2SsBS0";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 app.post('/api/chat', async (req, res) => {
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: 'Mensagem vazia.' });
+
+    console.log(`[Chat] Mensagem recebida: "${message}"`);
 
     try {
         const systemPrompt = `Você é Dutch van der Linde, o líder carismático e visionário da gangue Van der Linde de Red Dead Redemption 2. 
@@ -328,19 +330,33 @@ app.post('/api/chat', async (req, res) => {
             contents: [{
                 parts: [{ text: `${systemPrompt}\n\nUsuário: ${message}` }]
             }]
+        }, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 10000 // 10s timeout
         });
 
-        const aiResponse = response.data.candidates[0]?.content?.parts[0]?.text || "Dutch está sem palavras por um momento. Tente me perguntar outra coisa, parceiro.";
-        res.json({ response: aiResponse });
+        if (response.data.candidates && response.data.candidates.length > 0) {
+            const aiResponse = response.data.candidates[0].content.parts[0].text;
+            res.json({ response: aiResponse });
+        } else {
+            console.error("Gemini Error: No candidates in response", response.data);
+            res.json({ response: "Dutch está pensativo. Tente reformular sua pergunta, parceiro." });
+        }
     } catch (err) {
         let errorMsg = "Desculpe, parceiro. Meus planos falharam por um momento (Erro na API). Tente novamente!";
-        if (err.response?.data?.error?.message) {
-            console.error("Gemini API Error:", err.response.data.error.message);
-            if (err.response.data.error.message.includes("SAFETY")) {
-                errorMsg = "Dutch não pode responder a isso, parceiro. Vamos manter a conversa dentro do acampamento.";
+        const apiError = err.response?.data?.error;
+
+        if (apiError) {
+            console.error("Gemini API Error Detail:", apiError);
+            if (apiError.message.includes("SAFETY")) {
+                errorMsg = "Dutch não pode falar sobre isso, parceiro. Vamos manter o respeito no acampamento.";
+            } else if (apiError.status === "PERMISSION_DENIED" || apiError.message.includes("key")) {
+                errorMsg = "Parece que minha credencial foi revogada pelo Xerife. Avise o dono do site, parceiro! (Erro de Chave)";
+            } else {
+                errorMsg = `Os Pinkertons estão bloqueando minha conexão! (${apiError.message.substring(0, 50)}...)`;
             }
         } else {
-            console.error("Gemini Error:", err.message);
+            console.error("Gemini generic error:", err.message);
         }
         res.status(500).json({ response: errorMsg });
     }
