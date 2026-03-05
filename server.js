@@ -39,7 +39,7 @@ app.post('/api/auth/register', async (req, res) => {
             .select();
 
         if (error) {
-            if (error.code === '23505') return res.status(400).json({ error: 'Nome de usuário já existe.' });
+            if (error.code === '23505') return res.status(400).json({ error: 'Este nome de usuário já existe no bando. Por favor, escolha outro.' });
             throw error;
         }
         res.json({ message: "registered" });
