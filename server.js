@@ -330,11 +330,19 @@ app.post('/api/chat', async (req, res) => {
             }]
         });
 
-        const aiResponse = response.data.candidates[0].content.parts[0].text;
+        const aiResponse = response.data.candidates[0]?.content?.parts[0]?.text || "Dutch está sem palavras por um momento. Tente me perguntar outra coisa, parceiro.";
         res.json({ response: aiResponse });
     } catch (err) {
-        console.error("Gemini Error:", err.response?.data || err.message);
-        res.status(500).json({ response: "Desculpe, parceiro. Meus planos falharam por um momento (Erro na API). Tente novamente!" });
+        let errorMsg = "Desculpe, parceiro. Meus planos falharam por um momento (Erro na API). Tente novamente!";
+        if (err.response?.data?.error?.message) {
+            console.error("Gemini API Error:", err.response.data.error.message);
+            if (err.response.data.error.message.includes("SAFETY")) {
+                errorMsg = "Dutch não pode responder a isso, parceiro. Vamos manter a conversa dentro do acampamento.";
+            }
+        } else {
+            console.error("Gemini Error:", err.message);
+        }
+        res.status(500).json({ response: errorMsg });
     }
 });
 
