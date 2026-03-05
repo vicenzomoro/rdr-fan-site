@@ -124,6 +124,8 @@
                     <button class="tab-btn active" onclick="switchTab('comments')">Moderar Relatos</button>
                     <button class="tab-btn" onclick="switchTab('users')">Cidadãos (Prisões)</button>
                     <button class="tab-btn" onclick="switchTab('logs')">Segurança (Invasões)</button>
+                    <button class="tab-btn" onclick="switchTab('feedback')">Feedbacks</button>
+                    <button class="tab-btn" onclick="switchTab('submissions')">Envios de Mods</button>
                 </div>
 
                 <!-- Tabela de Comentários -->
@@ -170,6 +172,45 @@
                             </thead>
                             <tbody id="logs-table-body">
                                 <!-- Logs aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tabela de Feedbacks -->
+                <div id="tab-feedback" class="admin-section">
+                    <h2 class="section-title" style="font-size: 1.5rem; text-align: left;">Feedbacks dos Fãs</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Usuário</th>
+                                    <th>Mensagem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="feedback-table-body">
+                                <!-- Feedbacks aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tabela de Submissões de Mods -->
+                <div id="tab-submissions" class="admin-section">
+                    <h2 class="section-title" style="font-size: 1.5rem; text-align: left;">Mods Enviados pelo Bando</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Usuário</th>
+                                    <th>Título</th>
+                                    <th>Link</th>
+                                </tr>
+                            </thead>
+                            <tbody id="submissions-table-body">
+                                <!-- Submissões aqui -->
                             </tbody>
                         </table>
                     </div>

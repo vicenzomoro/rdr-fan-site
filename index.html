@@ -18,7 +18,9 @@
             <a href="#hero">Início</a>
             <a href="#saga">A Saga</a>
             <a href="#mods">Mods</a>
+            <a href="#uploads">Upload Mods</a>
             <a href="#downloads">Save 100%</a>
+            <a href="#feedback">Feedback</a>
             <a href="#comments">Comentários</a>
             <a href="login.html" id="nav-login-btn">Entrar / Registrar</a>
         </nav>
@@ -89,6 +91,23 @@
             </div>
         </section>
 
+        <section id="uploads" class="comments-section reveal" style="padding-top: 50px;">
+            <h2 class="section-title">Envie seu Mod</h2>
+            <div class="comments-container">
+                <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px;">Compartilhe suas criações
+                    com o bando. Envie o link do seu mod.</p>
+                <form id="mod-form" class="comment-form">
+                    <input type="text" id="mod-title" placeholder="Título do Mod" required>
+                    <textarea id="mod-description" rows="2"
+                        placeholder="Breve descrição do que o mod faz..."></textarea>
+                    <input type="url" id="mod-link" placeholder="Link do Mod (Nexus/RDR2Mods/MediaFire/GitHub)"
+                        required>
+                    <button type="submit" class="submit-button">Enviar Mod ao Xerife</button>
+                    <p id="mod-status" style="display:none; text-align:center; margin-top:10px;"></p>
+                </form>
+            </div>
+        </section>
+
         <section id="downloads" class="mods-section reveal" style="padding-top: 50px; border-top: none;">
             <h2 class="section-title">Savegame 100% Perfeito</h2>
             <div class="mods-container">
@@ -103,6 +122,20 @@
                         <span class="visit-link" style="color: #28a745;">📥 Baixar Save no MediaFire ➔</span>
                     </div>
                 </a>
+            </div>
+        </section>
+
+        <section id="feedback" class="comments-section reveal" style="padding-top: 50px; background: rgba(0,0,0,0.3);">
+            <h2 class="section-title">Sugestões e Feedbacks</h2>
+            <div class="comments-container">
+                <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px;">Como podemos melhorar
+                    nosso acampamento? Deixe sua sugestão.</p>
+                <form id="feedback-form" class="comment-form">
+                    <textarea id="feedback-text" rows="3" placeholder="Sua sugestão ou feedback para o site..."
+                        required></textarea>
+                    <button type="submit" class="submit-button" style="background: #a8763e;">Enviar Feedback</button>
+                    <p id="feedback-status" style="display:none; text-align:center; margin-top:10px;"></p>
+                </form>
             </div>
         </section>
 

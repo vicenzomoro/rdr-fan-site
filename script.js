@@ -162,4 +162,66 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
+
+    // === MOD SUBMISSION ===
+    const modForm = document.getElementById("mod-form");
+    const modStatus = document.getElementById("mod-status");
+
+    modForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!currentUser) {
+            alert("Faça login para enviar seu mod!");
+            return;
+        }
+
+        const title = document.getElementById("mod-title").value;
+        const description = document.getElementById("mod-description").value;
+        const link = document.getElementById("mod-link").value;
+
+        try {
+            const res = await fetch('/api/submissions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: currentUser, title, description, link })
+            });
+            if (res.ok) {
+                modStatus.innerText = "Mod enviado com sucesso! O Xerife irá analisar.";
+                modStatus.style.color = "#28a745";
+                modStatus.style.display = "block";
+                modForm.reset();
+            }
+        } catch (err) {
+            modStatus.innerText = "Falha ao enviar mod.";
+            modStatus.style.color = "#ff4c4c";
+            modStatus.style.display = "block";
+        }
+    });
+
+    // === FEEDBACK SUBMISSION ===
+    const feedbackForm = document.getElementById("feedback-form");
+    const feedbackStatus = document.getElementById("feedback-status");
+
+    feedbackForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const username = currentUser || "Anônimo";
+        const message = document.getElementById("feedback-text").value;
+
+        try {
+            const res = await fetch('/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, message })
+            });
+            if (res.ok) {
+                feedbackStatus.innerText = "Obrigado pelo seu feedback, forasteiro!";
+                feedbackStatus.style.color = "#28a745";
+                feedbackStatus.style.display = "block";
+                feedbackForm.reset();
+            }
+        } catch (err) {
+            feedbackStatus.innerText = "Falha ao enviar feedback.";
+            feedbackStatus.style.color = "#ff4c4c";
+            feedbackStatus.style.display = "block";
+        }
+    });
 });

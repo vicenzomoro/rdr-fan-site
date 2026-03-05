@@ -21,6 +21,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tabName === 'comments') loadAdminComments();
         if (tabName === 'users') loadAdminUsers();
         if (tabName === 'logs') loadAdminLogs();
+        if (tabName === 'feedback') loadAdminFeedback();
+        if (tabName === 'submissions') loadAdminSubmissions();
     };
 
     loginForm.addEventListener("submit", async (e) => {
@@ -165,6 +167,55 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             } else {
                 logsTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Nenhuma invasão registrada recentemente.</td></tr>';
+            }
+        } catch (error) { console.error(error); }
+    };
+
+    // === FEEDBACK TAB ===
+    const loadAdminFeedback = async () => {
+        try {
+            const response = await fetch('/api/admin/feedback', {
+                headers: { 'Authorization': adminToken }
+            });
+            const data = await response.json();
+            const tableBody = document.getElementById("feedback-table-body");
+            tableBody.innerHTML = '';
+            if (data.data) {
+                data.data.forEach(fb => {
+                    const date = new Date(fb.created_at).toLocaleString('pt-BR');
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td>${date}</td>
+                            <td>${fb.username}</td>
+                            <td>${fb.message}</td>
+                        </tr>
+                    `;
+                });
+            }
+        } catch (error) { console.error(error); }
+    };
+
+    // === SUBMISSIONS TAB ===
+    const loadAdminSubmissions = async () => {
+        try {
+            const response = await fetch('/api/admin/submissions', {
+                headers: { 'Authorization': adminToken }
+            });
+            const data = await response.json();
+            const tableBody = document.getElementById("submissions-table-body");
+            tableBody.innerHTML = '';
+            if (data.data) {
+                data.data.forEach(sub => {
+                    const date = new Date(sub.created_at).toLocaleString('pt-BR');
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td>${date}</td>
+                            <td>${sub.username}</td>
+                            <td>${sub.title}</td>
+                            <td><a href="${sub.link}" target="_blank" style="color: var(--primary-red);">Link Externo</a></td>
+                        </tr>
+                    `;
+                });
             }
         } catch (error) { console.error(error); }
     };

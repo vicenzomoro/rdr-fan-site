@@ -7,6 +7,9 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Enable proxy trust for accurate IP logging on Render/Heroku
+app.set('trust proxy', true);
+
 // Supabase Connection
 // The user will need to provide their own keys either via environment variables or hardcoded here temporarily
 const supabaseUrl = process.env.SUPABASE_URL || 'https://utgvmwqtioghilavuceo.supabase.co';
@@ -27,7 +30,7 @@ app.post('/api/auth/register', async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('users')
-            .insert([{ username, password }])
+            .insert([{ username, password, is_banned: false }])
             .select();
 
         if (error) {
@@ -104,14 +107,36 @@ app.post('/api/comments', async (req, res) => {
     }
 });
 
+// Feedback Routes
+app.post('/api/feedback', async (req, res) => {
+    const { username, message } = req.body;
+    if (!username || !message) return res.status(400).json({ error: 'Faltam dados.' });
+    try {
+        const { error } = await supabase.from('feedback').insert([{ username, message }]);
+        if (error) throw error;
+        res.json({ message: 'success' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Mod Submission Routes
+app.post('/api/submissions', async (req, res) => {
+    const { username, title, description, link } = req.body;
+    if (!username || !title || !link) return res.status(400).json({ error: 'Faltam dados.' });
+    try {
+        const { error } = await supabase.from('mod_submissions').insert([{ username, title, description, link }]);
+        if (error) throw error;
+        res.json({ message: 'success' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Admin Verification Route
 const DEV_MASTER_KEY = "DEV_XERIFE_1899"; // Developer Master Key provided as requested
 
 app.post('/api/admin/verify', async (req, res) => {
     const { token } = req.body;
 
-    // Retrieve IP and User Agent
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    // Retrieve IP and User Agent Correctly
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'] || 'Unknown';
 
     if (token === supabaseKey || token === DEV_MASTER_KEY) {
@@ -120,9 +145,9 @@ app.post('/api/admin/verify', async (req, res) => {
         // Log unauthorized attempt
         try {
             await supabase.from('admin_logs').insert([{
-                ip_address: ip,
+                ip_address: ip || '0.0.0.0',
                 user_agent: userAgent,
-                attempt_password: token.substring(0, 15) // prevent overly long inserts
+                attempt_password: token.substring(0, 30)
             }]);
         } catch (e) {
             console.error("Failed to log security breach:", e);
@@ -187,6 +212,28 @@ app.get('/api/admin/logs', async (req, res) => {
 
     try {
         const { data, error } = await supabase.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50);
+        if (error) throw error;
+        res.json({ data });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Admin Feedback Route
+app.get('/api/admin/feedback', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
+    try {
+        const { data, error } = await supabase.from('feedback').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        res.json({ data });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Admin Submissions Route
+app.get('/api/admin/submissions', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
+    try {
+        const { data, error } = await supabase.from('mod_submissions').select('*').order('created_at', { ascending: false });
         if (error) throw error;
         res.json({ data });
     } catch (err) { res.status(500).json({ error: err.message }); }
