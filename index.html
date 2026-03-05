@@ -96,12 +96,17 @@
             <div class="comments-container">
                 <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px;">Compartilhe suas criações
                     com o bando. Envie o link do seu mod.</p>
-                <form id="mod-form" class="comment-form">
+                <form id="mod-form" class="comment-form" enctype="multipart/form-data">
                     <input type="text" id="mod-title" placeholder="Título do Mod" required>
                     <textarea id="mod-description" rows="2"
                         placeholder="Breve descrição do que o mod faz..."></textarea>
-                    <input type="url" id="mod-link" placeholder="Link do Mod (Nexus/RDR2Mods/MediaFire/GitHub)"
-                        required>
+                    <div class="file-input-wrapper" style="margin-bottom: 10px;">
+                        <label for="mod-file"
+                            style="display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.9rem;">Arquivo
+                            do Mod (.zip, .rar ou .txt)</label>
+                        <input type="file" id="mod-file" accept=".zip,.rar,.txt,.7z" required
+                            style="border: 1px dashed var(--primary-red); padding: 10px; width: 100%;">
+                    </div>
                     <button type="submit" class="submit-button">Enviar Mod ao Xerife</button>
                     <p id="mod-status" style="display:none; text-align:center; margin-top:10px;"></p>
                 </form>

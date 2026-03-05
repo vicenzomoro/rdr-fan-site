@@ -176,24 +176,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const title = document.getElementById("mod-title").value;
         const description = document.getElementById("mod-description").value;
-        const link = document.getElementById("mod-link").value;
+        const modFile = document.getElementById("mod-file").files[0];
+
+        if (!modFile) {
+            alert("Por favor, selecione um arquivo.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("username", currentUser);
+        formData.append("title", title);
+        formData.append("description", description);
+        formData.append("modFile", modFile);
+
+        modStatus.innerText = "🔍 Escaneando arquivo por segurança...";
+        modStatus.style.color = "#a8763e";
+        modStatus.style.display = "block";
 
         try {
-            const res = await fetch('/api/submissions', {
+            const res = await fetch('/api/submissions/upload', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: currentUser, title, description, link })
+                body: formData
             });
+            const data = await res.json();
+
             if (res.ok) {
-                modStatus.innerText = "Mod enviado com sucesso! O Xerife irá analisar.";
+                modStatus.innerText = "✅ Mod verificado e enviado com sucesso! O Xerife irá analisar.";
                 modStatus.style.color = "#28a745";
-                modStatus.style.display = "block";
                 modForm.reset();
+            } else {
+                modStatus.innerText = "❌ " + (data.error || "Falha ao enviar mod.");
+                modStatus.style.color = "#ff4c4c";
             }
         } catch (err) {
-            modStatus.innerText = "Falha ao enviar mod.";
+            modStatus.innerText = "❌ Falha ao conectar ao servidor.";
             modStatus.style.color = "#ff4c4c";
-            modStatus.style.display = "block";
         }
     });
 

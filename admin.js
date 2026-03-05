@@ -212,7 +212,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             <td>${date}</td>
                             <td>${sub.username}</td>
                             <td>${sub.title}</td>
-                            <td><a href="${sub.link}" target="_blank" style="color: var(--primary-red);">Link Externo</a></td>
+                            <td><span style="color: #28a745;">🛡️ ${sub.security_status || 'Pendente'}</span></td>
+                            <td><a href="${sub.link}" target="_blank" style="color: var(--primary-red); font-weight: bold;">📥 Baixar Arquivo</a></td>
                         </tr>
                     `;
                 });

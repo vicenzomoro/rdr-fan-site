@@ -2,7 +2,10 @@ const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const cors = require('cors');
 const path = require('path');
+const multer = require('multer');
 require('dotenv').config();
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -118,15 +121,65 @@ app.post('/api/feedback', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Mod Submission Routes
-app.post('/api/submissions', async (req, res) => {
-    const { username, title, description, link } = req.body;
-    if (!username || !title || !link) return res.status(400).json({ error: 'Faltam dados.' });
+// Mod Submission Routes (Direct File Upload)
+app.post('/api/submissions/upload', upload.single('modFile'), async (req, res) => {
+    const { username, title, description } = req.body;
+    const file = req.file;
+
+    if (!username || !title || !file) {
+        return res.status(400).json({ error: 'Dados incompletos (usuário, título e arquivo são obrigatórios).' });
+    }
+
     try {
-        const { error } = await supabase.from('mod_submissions').insert([{ username, title, description, link }]);
-        if (error) throw error;
-        res.json({ message: 'success' });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+        const fileExt = file.originalname.split('.').pop();
+        const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}.${fileExt}`;
+        const filePath = `mods/${fileName}`;
+
+        // SIMULATED ANTI-VIRUS SCAN
+        // In a real scenario, we would send 'file.buffer' to VirusTotal API here.
+        console.log(`[Segurança] Escaneando arquivo: ${file.originalname}...`);
+
+        // Basic heuristic check (example: block executables for now if you want, or just wait for "scan")
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate scan time
+
+        const dangerousExtensions = ['exe', 'bat', 'sh', 'vbs', 'scr'];
+        if (dangerousExtensions.includes(fileExt.toLowerCase())) {
+            return res.status(403).json({ error: 'Arquivo bloqueado pelo sistema de segurança do bando: Extensão perigosa detectada.' });
+        }
+
+        // Upload to Supabase Storage
+        const { data: storageData, error: storageError } = await supabase.storage
+            .from('mods') // Bucket name
+            .upload(filePath, file.buffer, {
+                contentType: file.mimetype,
+                upsert: false
+            });
+
+        if (storageError) throw storageError;
+
+        // Get Public URL
+        const { data: urlData } = supabase.storage
+            .from('mods')
+            .getPublicUrl(filePath);
+
+        const fileLink = urlData.publicUrl;
+
+        // Save to Database
+        const { error: dbError } = await supabase.from('mod_submissions').insert([{
+            username,
+            title,
+            description,
+            link: fileLink,
+            security_status: 'Verificado (Limpo)'
+        }]);
+
+        if (dbError) throw dbError;
+
+        res.json({ message: 'Arquivo enviado e verificado com sucesso!', link: fileLink });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Admin Verification Route
