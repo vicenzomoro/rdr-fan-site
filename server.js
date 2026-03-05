@@ -457,10 +457,12 @@ app.delete('/api/admin/questions/:qid/replies/:rid', async (req, res) => {
 
 // AI Chat Route (Powered by Google Gemini)
 // AI Chat Route (Powered by Google Gemini)
-// Google Gemini API key
+// Google Gemini API key and model configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 if (!GEMINI_API_KEY) console.warn('Warning: GEMINI_API_KEY not configured; AI chat will fail.');
+if (!process.env.GEMINI_MODEL) console.info(`Using default Gemini model: ${GEMINI_MODEL}. Set GEMINI_MODEL environment variable to change.`);
 
 // master token for admin panel (should be strong and kept secret)
 const DEV_MASTER_KEY = process.env.DEV_MASTER_KEY || "";
@@ -509,16 +511,8 @@ app.post('/api/chat', async (req, res) => {
                 errorMsg = "Dutch não pode falar sobre isso, parceiro. Vamos manter o respeito no acampamento.";
             } else if (apiError.status === "PERMISSION_DENIED" || apiError.message.includes("key")) {
                 errorMsg = "Parece que minha credencial foi revogada pelo Xerife. Avise o dono do site, parceiro! (Erro de Chave)";
-            } else {
-                errorMsg = `Os Pinkertons estão bloqueando minha conexão! (${apiError.message.substring(0, 50)}...)`;
-            }
-        } else {
-            console.error("Gemini generic error:", err.message);
-        }
-        res.status(500).json({ response: errorMsg });
-    }
-});
-
+            } else if (apiError.message.toLowerCase().includes('model') || apiError.message.toLowerCase().includes('not found')) {
+                errorMsg = `Parece que o modelo \"${GEMINI_MODEL}\" não está disponível ou a versão da API mudou. Atualize GEMINI_MODEL ou verifique a documentação do Google.`;
 app.get('/api/admin/submissions', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
