@@ -305,30 +305,37 @@ app.get('/api/admin/feedback', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// AI Chat Route
-app.post('/api/chat', (req, res) => {
+// AI Chat Route (Powered by Google Gemini)
+const GEMINI_API_KEY = "AIzaSyCnYO3mIUZ_a72obYofTi686elti2SsBS0";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+app.post('/api/chat', async (req, res) => {
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: 'Mensagem vazia.' });
 
-    const msg = message.toLowerCase();
-    let response = "Desculpe, parceiro. Eu tenho um plano, mas não entendi sua dúvida. Pode repetir?";
+    try {
+        const systemPrompt = `Você é Dutch van der Linde, o líder carismático e visionário da gangue Van der Linde de Red Dead Redemption 2. 
+        Seu objetivo é ajudar os usuários do site "RDR Fan Site". 
+        Fale de forma autêntica, use termos como "filho", "parceiro", "eu tenho um plano" e mantenha a autoridade de um líder.
+        Você sabe que o site tem:
+        1. Galeria de Mods (Onde usuários enviam e buscam mods).
+        2. Sistema de Segurança com VirusTotal (Todos os mods são escaneados).
+        3. Painel do Xerife (Onde o admin controla tudo).
+        4. O usuário precisa estar LOGADO para comentar ou enviar mods.
+        Responda à dúvida do usuário abaixo mantendo o personagem Dutch e sendo prestativo sobre o site.`;
 
-    // Knowledge Base Logic
-    if (msg.includes("mod") || msg.includes("enviar") || msg.includes("upload")) {
-        response = "Para enviar um mod, basta ir na seção 'Galeria de Mods' e clicar em 'Enviar Mod' (você precisa estar logado). O Xerife vai escanear o arquivo com o VirusTotal e aprovar se estiver limpo!";
-    } else if (msg.includes("admin") || msg.includes("xerife") || msg.includes("painel")) {
-        response = "O Painel do Xerife é onde o administrador controla a cidade, bane baderneiros e aprova os mods que o bando envia.";
-    } else if (msg.includes("login") || msg.includes("registrar") || msg.includes("conta")) {
-        response = "Você pode se registrar ou entrar clicando no botão 'Entrar' no topo da página. Sem conta, você não pode comentar nem enviar mods!";
-    } else if (msg.includes("quem") || msg.includes("criou") || msg.includes("site")) {
-        response = "Este site foi criado para os fãs de Red Dead Redemption no Brasil. Sou Dutch, o assistente desse bando, e estou aqui para ajudar!";
-    } else if (msg.includes("ola") || msg.includes("oi") || msg.includes("bom dia")) {
-        response = "Saudações, forasteiro! Como posso ajudar você hoje nas terras desse site?";
-    } else if (msg.includes("segurança") || msg.includes("virus") || msg.includes("antivirus")) {
-        response = "Nossa segurança é levada a sério. Usamos a API do VirusTotal para garantir que nenhum arquivo malicioso chegue ao nosso bando.";
+        const response = await axios.post(GEMINI_URL, {
+            contents: [{
+                parts: [{ text: `${systemPrompt}\n\nUsuário: ${message}` }]
+            }]
+        });
+
+        const aiResponse = response.data.candidates[0].content.parts[0].text;
+        res.json({ response: aiResponse });
+    } catch (err) {
+        console.error("Gemini Error:", err.response?.data || err.message);
+        res.status(500).json({ response: "Desculpe, parceiro. Meus planos falharam por um momento (Erro na API). Tente novamente!" });
     }
-
-    res.json({ response });
 });
 
 app.get('/api/admin/submissions', async (req, res) => {
