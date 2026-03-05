@@ -474,8 +474,7 @@ app.post('/api/chat', async (req, res) => {
 
     console.log(`[Chat] Mensagem recebida: "${message}"`);
 
-    try {
-        const systemPrompt = `Você é Dutch van der Linde, o líder carismático e visionário da gangue Van der Linde de Red Dead Redemption 2. 
+    const systemPrompt = `Você é Dutch van der Linde, o líder carismático e visionário da gangue Van der Linde de Red Dead Redemption 2. 
         Seu objetivo é ajudar os usuários do site "RDR Fan Site". 
         Fale de forma autêntica, use termos como "filho", "parceiro", "eu tenho um plano" e mantenha a autoridade de um líder.
         Você sabe que o site tem:
@@ -485,26 +484,38 @@ app.post('/api/chat', async (req, res) => {
         4. O usuário precisa estar LOGADO para comentar ou enviar mods.
         Responda à dúvida do usuário abaixo mantendo o personagem Dutch e sendo prestativo sobre o site.`;
 
-        const response = await axios.post(GEMINI_URL, {
+    const callGemini = async (url) => {
+        const response = await axios.post(url, {
             contents: [{
                 parts: [{ text: `${systemPrompt}\n\nUsuário: ${message}` }]
             }]
         }, {
             headers: { 'Content-Type': 'application/json' },
-            timeout: 10000 // 10s timeout
+            timeout: 10000
         });
-
         if (response.data.candidates && response.data.candidates.length > 0) {
-            const aiResponse = response.data.candidates[0].content.parts[0].text;
-            res.json({ response: aiResponse });
-        } else {
-            console.error("Gemini Error: No candidates in response", response.data);
-            res.json({ response: "Dutch está pensativo. Tente reformular sua pergunta, parceiro." });
+            return response.data.candidates[0].content.parts[0].text;
         }
-    } catch (err) {
-        let errorMsg = "Desculpe, parceiro. Meus planos falharam por um momento (Erro na API). Tente novamente!";
-        const apiError = err.response?.data?.error;
+        throw new Error('No candidates');
+    };
 
+    try {
+        const aiResponse = await callGemini(GEMINI_URL);
+        return res.json({ response: aiResponse });
+    } catch (err) {
+        const apiError = err.response?.data?.error;
+        if (apiError && (apiError.message.toLowerCase().includes('model') || apiError.message.toLowerCase().includes('not found'))) {
+            console.warn('Modelo não encontrado, tentando gemini-1.5 de fallback');
+            try {
+                const fallbackUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5:generateContent?key=${GEMINI_API_KEY}`;
+                const aiResponse = await callGemini(fallbackUrl);
+                return res.json({ response: aiResponse });
+            } catch (innerErr) {
+                console.error('Fallback também falhou', innerErr.response?.data || innerErr.message);
+                err = innerErr;
+            }
+        }
+        let errorMsg = "Desculpe, parceiro. Meus planos falharam por um momento (Erro na API). Tente novamente!";
         if (apiError) {
             console.error("Gemini API Error Detail:", apiError);
             if (apiError.message.includes("SAFETY")) {
@@ -513,6 +524,16 @@ app.post('/api/chat', async (req, res) => {
                 errorMsg = "Parece que minha credencial foi revogada pelo Xerife. Avise o dono do site, parceiro! (Erro de Chave)";
             } else if (apiError.message.toLowerCase().includes('model') || apiError.message.toLowerCase().includes('not found')) {
                 errorMsg = `Parece que o modelo \"${GEMINI_MODEL}\" não está disponível ou a versão da API mudou. Atualize GEMINI_MODEL ou verifique a documentação do Google.`;
+            } else {
+                errorMsg = `Os Pinkertons estão bloqueando minha conexão! (${apiError.message.substring(0, 50)}...)`;
+            }
+        } else {
+            console.error("Gemini generic error:", err.message);
+        }
+        return res.status(500).json({ response: errorMsg });
+    }
+});
+
 app.get('/api/admin/submissions', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
