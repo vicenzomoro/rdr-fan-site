@@ -9,3 +9,4 @@ database.sqlite
 .DS_Store
 Thumbs.db
 .env
+.env
