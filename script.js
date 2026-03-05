@@ -55,6 +55,17 @@ document.addEventListener("DOMContentLoaded", () => {
         textInput.disabled = true;
         document.getElementById("author").disabled = true;
         document.getElementById("author").placeholder = "Visitante";
+
+        // also disable question form inputs
+        const qFormEl = document.getElementById('question-form');
+        if (qFormEl) {
+            const qi = qFormEl.querySelector('input');
+            const qt = qFormEl.querySelector('textarea');
+            const qb = qFormEl.querySelector('button');
+            if (qi) { qi.disabled = true; qi.placeholder = 'Faça login para postar uma dúvida.'; }
+            if (qt) { qt.disabled = true; qt.placeholder = 'Faça login para postar uma dúvida.'; }
+            if (qb) qb.disabled = true;
+        }
     }
 
     const renderComment = (comment) => {
@@ -162,6 +173,114 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
+
+    // === Q&A Section ===
+    const questionForm = document.getElementById("question-form");
+    const questionsList = document.getElementById("questions-list");
+    const QUESTIONS_URL = '/api/questions';
+
+    const renderReply = (reply, parentEl) => {
+        const rEl = document.createElement("div");
+        rEl.classList.add("comment-item");
+        rEl.style.marginLeft = '20px';
+        rEl.innerHTML = `
+            <div class="comment-author">${reply.author}</div>
+            <div class="comment-text">${reply.text}</div>
+            <div class="comment-date">${reply.date}</div>
+        `;
+        parentEl.appendChild(rEl);
+    };
+
+    const renderQuestion = (q) => {
+        const qEl = document.createElement("div");
+        qEl.classList.add("comment-item");
+        qEl.innerHTML = `
+            <div class="question-title" style="font-weight:bold; font-size:1.1rem; margin-bottom:5px;">${q.title}</div>
+            <div class="comment-author">${q.author}</div>
+            <div class="comment-text">${q.text}</div>
+            <div class="comment-date">${q.date}</div>
+            <div class="replies-container"></div>
+            ${currentUser ? `
+            <form class="reply-form" data-qid="${q.id}" style="margin-top:10px;">
+                 <input type="text" placeholder="Responder..." required style="width:80%;padding:8px;border:1px solid var(--glass-border);border-radius:4px;">
+                 <button type="submit" class="submit-button" style="font-size:0.9rem;padding:5px 10px;">Enviar</button>
+            </form>` : ''}
+        `;
+        const repliesDiv = qEl.querySelector(".replies-container");
+        if (q.replies && q.replies.length) {
+            q.replies.forEach(r => renderReply(r, repliesDiv));
+        }
+        questionsList.appendChild(qEl);
+    };
+
+    const loadQuestions = async () => {
+        if (!questionsList) return;
+        questionsList.innerHTML = '<p style="color: var(--text-muted);">Carregando perguntas...</p>';
+        try {
+            const res = await fetch(QUESTIONS_URL);
+            const data = await res.json();
+            questionsList.innerHTML = '';
+            if (data.data && data.data.length) {
+                data.data.forEach(renderQuestion);
+            } else {
+                questionsList.innerHTML = '<p style="color: var(--text-muted);">Ainda não há dúvidas postadas.</p>';
+            }
+        } catch (err) {
+            console.error("Erro ao carregar dúvidas:", err);
+            questionsList.innerHTML = '<p style="color:#ff4c4c;">Erro ao carregar dúvidas.</p>';
+        }
+    };
+
+    loadQuestions();
+
+    if (questionForm) {
+        questionForm.addEventListener("submit", async e => {
+            e.preventDefault();
+            if (!currentUser) {
+                alert("Faça login para publicar uma dúvida.");
+                window.location.href = 'login.html';
+                return;
+            }
+            const title = document.getElementById("question-title").value.trim();
+            const text = document.getElementById("question-text").value.trim();
+            if (!title || !text) return;
+            const newQ = { author: currentUser, title, text, date: new Date().toLocaleDateString() };
+            try {
+                const res = await fetch(QUESTIONS_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(newQ)
+                });
+                if (res.ok) {
+                    loadQuestions();
+                    questionForm.reset();
+                }
+            } catch(err){ console.error(err); }
+        });
+    }
+
+    // handle reply submission
+    if (questionsList) {
+        questionsList.addEventListener("submit", async e => {
+            if (!e.target.matches('.reply-form')) return;
+            e.preventDefault();
+            const qid = e.target.getAttribute('data-qid');
+            const input = e.target.querySelector('input');
+            const text = input.value.trim();
+            if (!text) return;
+            const replyPayload = { author: currentUser, text, date: new Date().toLocaleDateString() };
+            try {
+                const res = await fetch(`${QUESTIONS_URL}/${qid}/replies`, {
+                    method:'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(replyPayload)
+                });
+                if (res.ok) {
+                    loadQuestions();
+                }
+            } catch(err){ console.error(err); }
+        });
+    }
 
     // === MOD SUBMISSION ===
     const modForm = document.getElementById("mod-form");

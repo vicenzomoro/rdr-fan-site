@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tabName === 'users') loadAdminUsers();
         if (tabName === 'logs') loadAdminLogs();
         if (tabName === 'feedback') loadAdminFeedback();
+        if (tabName === 'questions') loadAdminQuestions();
         if (tabName === 'submissions') loadAdminSubmissions();
     };
 
@@ -194,6 +195,79 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         } catch (error) { console.error(error); }
     };
+
+    // === QUESTIONS TAB ===
+    const loadAdminQuestions = async () => {
+        try {
+            const response = await fetch('/api/admin/questions', {
+                headers: { 'Authorization': adminToken }
+            });
+            const data = await response.json();
+            const list = document.getElementById('admin-questions-list');
+            list.innerHTML = '';
+            if (data.data) {
+                data.data.forEach(q => {
+                    const qDiv = document.createElement('div');
+                    qDiv.className = 'comment-item';
+                    qDiv.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <div>
+                                <div class="question-title" style="font-weight:bold;">${q.title}</div>
+                                <div class="comment-author">${q.author}</div>
+                                <div class="comment-date">${new Date(q.created_at).toLocaleDateString()}</div>
+                                <div class="comment-text" style="margin-top:5px;">${q.text}</div>
+                            </div>
+                            <button onclick="deleteQuestion(${q.id})" class="ban-btn" style="font-family: 'Rye', cursive;">Apagar</button>
+                        </div>
+                        <div style="margin-left:20px; margin-top:10px;">
+                    `;
+                    if (q.replies && q.replies.length) {
+                        q.replies.forEach(r => {
+                            qDiv.innerHTML += `
+                                <div style="display:flex; justify-content:space-between; align-items:start; margin-top:5px;">
+                                    <div>
+                                        <div class="comment-author">${r.author}</div>
+                                        <div class="comment-text">${r.text}</div>
+                                        <div class="comment-date">${new Date(r.created_at).toLocaleDateString()}</div>
+                                    </div>
+                                    <button onclick="deleteReply(${q.id}, ${r.id})" class="ban-btn" style="font-family: 'Rye', cursive; font-size:0.8rem;">Excluir</button>
+                                </div>
+                            `;
+                        });
+                    }
+                    qDiv.innerHTML += '</div>';
+                    list.appendChild(qDiv);
+                });
+            } else {
+                list.innerHTML = '<p style="color: var(--text-muted);">Nenhuma dúvida registrada.</p>';
+            }
+        } catch (error) { console.error(error); }
+    };
+
+    window.deleteQuestion = async (id) => {
+        if (!confirm("Tem certeza que deseja apagar esta dúvida e todas as respostas?")) return;
+        try {
+            const res = await fetch(`/api/admin/questions/${id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }
+            });
+            if (res.ok) loadAdminQuestions();
+            else alert("Falha ao deletar.");
+        } catch (err) { alert("Erro de conexão."); }
+    };
+
+    window.deleteReply = async (qid, rid) => {
+        if (!confirm("Deseja realmente apagar esta resposta?")) return;
+        try {
+            const res = await fetch(`/api/admin/questions/${qid}/replies/${rid}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }
+            });
+            if (res.ok) loadAdminQuestions();
+            else alert("Falha ao deletar.");
+        } catch (err) { alert("Erro de conexão."); }
+    };
+
 
     // === SUBMISSIONS TAB ===
     const loadAdminSubmissions = async () => {

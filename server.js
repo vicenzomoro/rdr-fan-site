@@ -112,6 +112,45 @@ app.post('/api/comments', async (req, res) => {
     }
 });
 
+// Questions & Replies Routes (public Q&A style)
+app.get('/api/questions', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('questions')
+            .select('*, replies(*)')
+            .order('id', { ascending: false });
+        if (error) throw error;
+        res.json({ data });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/questions', async (req, res) => {
+    const { author, title, text, date } = req.body;
+    if (!author || !title || !text) return res.status(400).json({ error: 'Dados incompletos.' });
+    try {
+        const { data, error } = await supabase.from('questions').insert([{ author, title, text, date }]).select();
+        if (error) throw error;
+        res.json({ message: 'success', data: data[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/questions/:id/replies', async (req, res) => {
+    const { author, text, date } = req.body;
+    const qid = req.params.id;
+    if (!author || !text) return res.status(400).json({ error: 'Dados incompletos.' });
+    try {
+        const { data, error } = await supabase.from('replies').insert([{ question_id: qid, author, text, date }]).select();
+        if (error) throw error;
+        res.json({ message: 'success', data: data[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Feedback Routes
 app.post('/api/feedback', async (req, res) => {
     const { username, message } = req.body;
@@ -305,6 +344,42 @@ app.get('/api/admin/feedback', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Admin Q&A management
+app.get('/api/admin/questions', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
+    try {
+        const { data, error } = await supabase.from('questions').select('*, replies(*)').order('id', { ascending: false });
+        if (error) throw error;
+        res.json({ data });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/admin/questions/:id', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
+    const { id } = req.params;
+    try {
+        // remove replies first
+        await supabase.from('replies').delete().eq('question_id', id);
+        const { error } = await supabase.from('questions').delete().eq('id', id);
+        if (error) throw error;
+        res.json({ message: "deleted" });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/admin/questions/:qid/replies/:rid', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
+    const { rid } = req.params;
+    try {
+        const { error } = await supabase.from('replies').delete().eq('id', rid);
+        if (error) throw error;
+        res.json({ message: "deleted" });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// AI Chat Route (Powered by Google Gemini)
 // AI Chat Route (Powered by Google Gemini)
 const GEMINI_API_KEY = "AIzaSyCnYO3mIUZ_a72obYofTi686elti2SsBS0";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;

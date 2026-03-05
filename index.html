@@ -21,6 +21,7 @@
             <a href="#uploads">Upload Mods</a>
             <a href="#downloads">Save 100%</a>
             <a href="#feedback">Feedback</a>
+            <a href="#duvidas">Dúvidas</a>
             <a href="#comments">Comentários</a>
             <a href="login.html" id="nav-login-btn">Entrar / Registrar</a>
         </nav>
@@ -178,6 +179,21 @@
                 </form>
                 <div id="comments-list" class="comments-list">
                     <!-- Comentários renderizados via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Q&A Section (Dúvidas estilo Reddit) -->
+        <section id="duvidas" class="comments-section reveal" style="background:#2a2a2a;">
+            <h2 class="section-title">Dúvidas e Perguntas</h2>
+            <div class="comments-container">
+                <form id="question-form" class="comment-form">
+                    <input type="text" id="question-title" placeholder="Título da dúvida" required>
+                    <textarea id="question-text" rows="3" placeholder="Explique sua dúvida ou questão..." required></textarea>
+                    <button type="submit" class="submit-button">Publicar Pergunta</button>
+                </form>
+                <div id="questions-list" class="comments-list">
+                    <!-- Perguntas e respostas renderizadas via JS -->
                 </div>
             </div>
         </section>
