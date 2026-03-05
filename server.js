@@ -457,12 +457,21 @@ app.delete('/api/admin/questions/:qid/replies/:rid', async (req, res) => {
 
 // AI Chat Route (Powered by Google Gemini)
 // AI Chat Route (Powered by Google Gemini)
-// Google Gemini API key and model configuration
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3v'; // api uses 3v by default
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-if (!GEMINI_API_KEY) console.warn('Warning: GEMINI_API_KEY not configured; AI chat will fail.');
-if (!process.env.GEMINI_MODEL) console.info(`Using default Gemini model: ${GEMINI_MODEL}. (change GEMINI_MODEL if needed)`);
+// Generative AI key and model configuration (Gemini or OpenAI)
+const GEN_API_KEY = process.env.GEN_API_KEY || process.env.GEMINI_API_KEY || "";
+const GEN_MODEL = process.env.GEN_MODEL || process.env.GEMINI_MODEL || 'gemini-3v';
+
+// determine provider from key prefix
+const USE_OPENAI = GEN_API_KEY.startsWith('sk-');
+
+let GEN_URL;
+if (!USE_OPENAI) {
+    // Gemini style URL (Google)
+    GEN_URL = `https://generativelanguage.googleapis.com/v1/models/${GEN_MODEL}:generateContent?key=${GEN_API_KEY}`;
+}
+
+if (!GEN_API_KEY) console.warn('Warning: generative API key not configured; AI chat will fail.');
+if (!process.env.GEN_MODEL && !process.env.GEMINI_MODEL) console.info(`Using default model: ${GEN_MODEL}. (change GEN_MODEL or GEMINI_MODEL if needed)`);
 
 // master token for admin panel (should be strong and kept secret)
 const DEV_MASTER_KEY = process.env.DEV_MASTER_KEY || "";
@@ -485,18 +494,39 @@ app.post('/api/chat', async (req, res) => {
         Responda à dúvida do usuário abaixo mantendo o personagem Dutch e sendo prestativo sobre o site.`;
 
     const callGemini = async (url) => {
-        const response = await axios.post(url, {
-            contents: [{
-                parts: [{ text: `${systemPrompt}\n\nUsuário: ${message}` }]
-            }]
-        }, {
-            headers: { 'Content-Type': 'application/json' },
-            timeout: 10000
-        });
-        if (response.data.candidates && response.data.candidates.length > 0) {
-            return response.data.candidates[0].content.parts[0].text;
+        if (USE_OPENAI) {
+            // OpenAI chat completion
+            const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+                model: GEN_MODEL || 'gpt-3.5-turbo',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: message }
+                ]
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${GEN_API_KEY}`
+                },
+                timeout: 10000
+            });
+            if (response.data.choices && response.data.choices.length > 0) {
+                return response.data.choices[0].message.content;
+            }
+            throw new Error('No OpenAI choices');
+        } else {
+            const response = await axios.post(url, {
+                contents: [{
+                    parts: [{ text: `${systemPrompt}\n\nUsuário: ${message}` }]
+                }]
+            }, {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 10000
+            });
+            if (response.data.candidates && response.data.candidates.length > 0) {
+                return response.data.candidates[0].content.parts[0].text;
+            }
+            throw new Error('No candidates');
         }
-        throw new Error('No candidates');
     };
 
     try {
@@ -505,9 +535,9 @@ app.post('/api/chat', async (req, res) => {
     } catch (err) {
         const apiError = err.response?.data?.error;
         if (apiError && (apiError.message.toLowerCase().includes('model') || apiError.message.toLowerCase().includes('not found'))) {
-            console.warn('Modelo não encontrado, tentando gemini-1.5 de fallback');
+            console.warn(`Modelo ${GEN_MODEL} não encontrado, tentando fallback gemini-1.5`);
             try {
-                const fallbackUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5:generateContent?key=${GEMINI_API_KEY}`;
+                const fallbackUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5:generateContent?key=${GEN_API_KEY}`;
                 const aiResponse = await callGemini(fallbackUrl);
                 return res.json({ response: aiResponse });
             } catch (innerErr) {
