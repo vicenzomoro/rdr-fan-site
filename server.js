@@ -459,10 +459,10 @@ app.delete('/api/admin/questions/:qid/replies/:rid', async (req, res) => {
 // AI Chat Route (Powered by Google Gemini)
 // Google Gemini API key and model configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3v'; // api uses 3v by default
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 if (!GEMINI_API_KEY) console.warn('Warning: GEMINI_API_KEY not configured; AI chat will fail.');
-if (!process.env.GEMINI_MODEL) console.info(`Using default Gemini model: ${GEMINI_MODEL}. Set GEMINI_MODEL environment variable to change.`);
+if (!process.env.GEMINI_MODEL) console.info(`Using default Gemini model: ${GEMINI_MODEL}. (change GEMINI_MODEL if needed)`);
 
 // master token for admin panel (should be strong and kept secret)
 const DEV_MASTER_KEY = process.env.DEV_MASTER_KEY || "";
