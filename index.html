@@ -159,6 +159,27 @@
         </section>
     </main>
 
+    <!-- AI Chat Assistant -->
+    <div id="ai-chat-widget">
+        <button id="ai-chat-toggle" class="chat-toggle-btn">
+            <span class="chat-icon">💬</span>
+            <span class="chat-text">Falar com Dutch</span>
+        </button>
+        <div id="ai-chat-window" class="chat-window" style="display: none;">
+            <div class="chat-header">
+                <h3>Dutch (Assistente do Bando)</h3>
+                <button id="close-chat" class="close-btn">&times;</button>
+            </div>
+            <div id="chat-messages" class="chat-body">
+                <div class="ai-msg">Saudações, forasteiro. Como posso ajudar o bando hoje?</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Tire sua dúvida...">
+                <button id="send-chat" class="send-btn">➔</button>
+            </div>
+        </div>
+    </div>
+
     <footer>
         <p>Feito por um fã para fãs. Todos os direitos da franquia pertencem à Rockstar Games.</p>
     </footer>

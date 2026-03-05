@@ -305,6 +305,32 @@ app.get('/api/admin/feedback', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// AI Chat Route
+app.post('/api/chat', (req, res) => {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: 'Mensagem vazia.' });
+
+    const msg = message.toLowerCase();
+    let response = "Desculpe, parceiro. Eu tenho um plano, mas não entendi sua dúvida. Pode repetir?";
+
+    // Knowledge Base Logic
+    if (msg.includes("mod") || msg.includes("enviar") || msg.includes("upload")) {
+        response = "Para enviar um mod, basta ir na seção 'Galeria de Mods' e clicar em 'Enviar Mod' (você precisa estar logado). O Xerife vai escanear o arquivo com o VirusTotal e aprovar se estiver limpo!";
+    } else if (msg.includes("admin") || msg.includes("xerife") || msg.includes("painel")) {
+        response = "O Painel do Xerife é onde o administrador controla a cidade, bane baderneiros e aprova os mods que o bando envia.";
+    } else if (msg.includes("login") || msg.includes("registrar") || msg.includes("conta")) {
+        response = "Você pode se registrar ou entrar clicando no botão 'Entrar' no topo da página. Sem conta, você não pode comentar nem enviar mods!";
+    } else if (msg.includes("quem") || msg.includes("criou") || msg.includes("site")) {
+        response = "Este site foi criado para os fãs de Red Dead Redemption no Brasil. Sou Dutch, o assistente desse bando, e estou aqui para ajudar!";
+    } else if (msg.includes("ola") || msg.includes("oi") || msg.includes("bom dia")) {
+        response = "Saudações, forasteiro! Como posso ajudar você hoje nas terras desse site?";
+    } else if (msg.includes("segurança") || msg.includes("virus") || msg.includes("antivirus")) {
+        response = "Nossa segurança é levada a sério. Usamos a API do VirusTotal para garantir que nenhum arquivo malicioso chegue ao nosso bando.";
+    }
+
+    res.json({ response });
+});
+
 app.get('/api/admin/submissions', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });

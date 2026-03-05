@@ -307,4 +307,70 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     if (modsGallery) fetchMods();
+
+    // === AI CHAT ASSISTANT ===
+    const chatToggle = document.getElementById("ai-chat-toggle");
+    const chatWindow = document.getElementById("ai-chat-window");
+    const closeChat = document.getElementById("close-chat");
+    const chatInput = document.getElementById("chat-input");
+    const sendChat = document.getElementById("send-chat");
+    const chatMessages = document.getElementById("chat-messages");
+
+    if (chatToggle) {
+        chatToggle.addEventListener("click", () => {
+            chatWindow.style.display = "flex";
+            chatToggle.style.display = "none";
+        });
+    }
+
+    if (closeChat) {
+        closeChat.addEventListener("click", () => {
+            chatWindow.style.display = "none";
+            chatToggle.style.display = "flex";
+        });
+    }
+
+    const appendMessage = (text, type) => {
+        const msgDiv = document.createElement("div");
+        msgDiv.className = type === 'ai' ? 'ai-msg' : 'user-msg';
+        msgDiv.innerText = text;
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
+
+    const handleChat = async () => {
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        appendMessage(message, 'user');
+        chatInput.value = "";
+
+        // Typing indicator
+        const typingDiv = document.createElement("div");
+        typingDiv.className = "ai-msg";
+        typingDiv.innerText = "Dutch está pensando...";
+        chatMessages.appendChild(typingDiv);
+
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            });
+            const data = await res.json();
+
+            chatMessages.removeChild(typingDiv);
+            appendMessage(data.response, 'ai');
+        } catch (err) {
+            chatMessages.removeChild(typingDiv);
+            appendMessage("Desculpe, o telégrafo falhou. Tente novamente!", 'ai');
+        }
+    };
+
+    if (sendChat) {
+        sendChat.addEventListener("click", handleChat);
+        chatInput.addEventListener("keypress", (e) => {
+            if (e.key === 'Enter') handleChat();
+        });
+    }
 });
