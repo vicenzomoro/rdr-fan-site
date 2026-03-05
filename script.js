@@ -36,13 +36,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Check Login State
     const currentUser = localStorage.getItem('currentUser');
+    const loginBtn = document.getElementById('nav-login-btn');
     if (currentUser) {
-        document.getElementById('nav-login-btn').innerText = 'Sair (' + currentUser + ')';
-        document.getElementById('nav-login-btn').addEventListener('click', (e) => {
-            e.preventDefault();
-            localStorage.removeItem('currentUser');
-            window.location.reload();
-        });
+        if (loginBtn) {
+            loginBtn.innerText = 'Sair (' + currentUser + ')';
+            loginBtn.href = "#"; // Prevent navigation
+            loginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                localStorage.removeItem('currentUser');
+                window.location.reload();
+            });
+        }
         document.getElementById('author').value = currentUser;
         document.getElementById('author').disabled = true;
     } else {
