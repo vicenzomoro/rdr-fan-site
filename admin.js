@@ -4,6 +4,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const panelSection = document.getElementById("panel-section");
     const loginError = document.getElementById("login-error");
 
+    // helper to escape text for HTML
+    const escapeHtml = (str) => {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, (s) => {
+            switch (s) {
+                case '&': return '&amp;';
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '"': return '&quot;';
+                case "'": return '&#39;';
+                default: return s;
+            }
+        });
+    };
+
     // Tabs elements
     const commentsList = document.getElementById("admin-comments-list");
     const usersTableBody = document.getElementById("users-table-body");
@@ -96,9 +111,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     el.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div>
-                                <div class="comment-author">${comment.author}</div>
-                                <div class="comment-text">${comment.text}</div>
-                                <div class="comment-date">${comment.date || '-'}</div>
+                                <div class="comment-author">${escapeHtml(comment.author)}</div>
+                                <div class="comment-text">${escapeHtml(comment.text)}</div>
+                                <div class="comment-date">${escapeHtml(comment.date || '-')}</div>
                             </div>
                             <button onclick="deleteComment(${comment.id})" class="ban-btn" style="font-family: 'Rye', cursive;">Apagar</button>
                         </div>
@@ -153,7 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     usersTableBody.innerHTML += `
                         <tr>
                             <td>${user.id}</td>
-                            <td>${user.username}</td>
+                            <td>${escapeHtml(user.username)}</td>
                             <td style="color: ${isBanned ? '#ff4c4c' : '#28a745'}; font-weight: bold;">
                                 ${isBanned ? 'Preso / Banido' : 'Livre'}
                             </td>
@@ -216,9 +231,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     logsTableBody.innerHTML += `
                         <tr>
                             <td>${dateStr}</td>
-                            <td style="color: #ff4c4c; font-weight: bold;">${log.ip_address}</td>
-                            <td style="font-size: 0.8rem; color: #ccc;">${log.user_agent}</td>
-                            <td><code style="background: rgba(0,0,0,0.8); padding: 5px; border-radius:3px;">${log.attempt_password || 'Desconhecida'}</code></td>
+                            <td style="color: #ff4c4c; font-weight: bold;">${escapeHtml(log.ip_address)}</td>
+                            <td style="font-size: 0.8rem; color: #ccc;">${escapeHtml(log.user_agent)}</td>
+                            <td><code style="background: rgba(0,0,0,0.8); padding: 5px; border-radius:3px;">${escapeHtml(log.attempt_password || 'Desconhecida')}</code></td>
                         </tr>
                     `;
                 });
@@ -255,8 +270,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     tableBody.innerHTML += `
                         <tr>
                             <td>${date}</td>
-                            <td>${fb.username}</td>
-                            <td>${fb.message}</td>
+                            <td>${escapeHtml(fb.username)}</td>
+                            <td>${escapeHtml(fb.message)}</td>
                         </tr>
                     `;
                 });
@@ -295,10 +310,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     qDiv.innerHTML = `
                         <div style="display:flex;justify-content:space-between;align-items:center;">
                             <div>
-                                <div class="question-title" style="font-weight:bold;">${q.title}</div>
-                                <div class="comment-author">${q.author}</div>
+                                <div class="question-title" style="font-weight:bold;">${escapeHtml(q.title)}</div>
+                                <div class="comment-author">${escapeHtml(q.author)}</div>
                                 <div class="comment-date">${new Date(q.created_at).toLocaleDateString()}</div>
-                                <div class="comment-text" style="margin-top:5px;">${q.text}</div>
+                                <div class="comment-text" style="margin-top:5px;">${escapeHtml(q.text)}</div>
                             </div>
                             <button onclick="deleteQuestion(${q.id})" class="ban-btn" style="font-family: 'Rye', cursive;">Apagar</button>
                         </div>
@@ -309,8 +324,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             qDiv.innerHTML += `
                                 <div style="display:flex; justify-content:space-between; align-items:start; margin-top:5px;">
                                     <div>
-                                        <div class="comment-author">${r.author}</div>
-                                        <div class="comment-text">${r.text}</div>
+                                        <div class="comment-author">${escapeHtml(r.author)}</div>
+                                        <div class="comment-text">${escapeHtml(r.text)}</div>
                                         <div class="comment-date">${new Date(r.created_at).toLocaleDateString()}</div>
                                     </div>
                                     <button onclick="deleteReply(${q.id}, ${r.id})" class="ban-btn" style="font-family: 'Rye', cursive; font-size:0.8rem;">Excluir</button>
@@ -380,15 +395,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     tableBody.innerHTML += `
                         <tr>
                             <td>${date}</td>
-                            <td>${sub.username}</td>
-                            <td>${sub.title}</td>
-                            <td><span style="color: #28a745;">🛡️ ${sub.security_status || 'Pendente'}</span></td>
+                            <td>${escapeHtml(sub.username)}</td>
+                            <td>${escapeHtml(sub.title)}</td>
+                            <td><span style="color: #28a745;">🛡️ ${escapeHtml(sub.security_status || 'Pendente')}</span></td>
                             <td>
-                                <a href="${sub.link}" target="_blank" style="color: var(--primary-red); font-weight: bold; margin-right: 10px;">📥 Baixar</a>
+                                <a href="${escapeHtml(sub.link)}" target="_blank" style="color: var(--primary-red); font-weight: bold; margin-right: 10px;">📥 Baixar</a>
                                 <button class="${isApproved ? 'unban-btn' : 'submit-button'}" 
                                         style="font-size: 0.8rem; padding: 5px 10px;"
                                         onclick="toggleModApproval(${sub.id}, ${!isApproved})">
-                                    ${isApproved ? 'Remover' : 'Aprovar'}
+                                    ${isApproved ? 'Desaprovar' : 'Aprovar'}
                                 </button>
                             </td>
                         </tr>
@@ -467,7 +482,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     window.toggleModApproval = async (id, status) => {
-        const action = status ? "aprovar" : "remover";
+        const action = status ? "aprovar" : "desaprovar";
         if (!confirm(`Deseja realmente ${action} este mod para a galeria pública?`)) return;
 
         try {

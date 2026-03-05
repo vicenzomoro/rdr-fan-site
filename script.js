@@ -68,14 +68,27 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    const escapeHtml = (str) => {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, (s) => {
+            switch (s) {
+                case '&': return '&amp;';
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '"': return '&quot;';
+                case "'": return '&#39;';
+                default: return s;
+            }
+        });
+    };
+
     const renderComment = (comment) => {
         const commentEl = document.createElement("div");
         commentEl.classList.add("comment-item");
-        // simple parsing to escape html could be done, but for now we trust the input
         commentEl.innerHTML = `
-            <div class="comment-author">${comment.author}</div>
-            <div class="comment-text">${comment.text}</div>
-            <div class="comment-date">${comment.date}</div>
+            <div class="comment-author">${escapeHtml(comment.author)}</div>
+            <div class="comment-text">${escapeHtml(comment.text)}</div>
+            <div class="comment-date">${escapeHtml(comment.date)}</div>
         `;
         // Since API returns ordered by ID DESC, we append to maintain order
         commentsList.appendChild(commentEl);
@@ -184,9 +197,9 @@ document.addEventListener("DOMContentLoaded", () => {
         rEl.classList.add("comment-item");
         rEl.style.marginLeft = '20px';
         rEl.innerHTML = `
-            <div class="comment-author">${reply.author}</div>
-            <div class="comment-text">${reply.text}</div>
-            <div class="comment-date">${reply.date}</div>
+            <div class="comment-author">${escapeHtml(reply.author)}</div>
+            <div class="comment-text">${escapeHtml(reply.text)}</div>
+            <div class="comment-date">${escapeHtml(reply.date)}</div>
         `;
         parentEl.appendChild(rEl);
     };
@@ -195,10 +208,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const qEl = document.createElement("div");
         qEl.classList.add("comment-item");
         qEl.innerHTML = `
-            <div class="question-title" style="font-weight:bold; font-size:1.1rem; margin-bottom:5px;">${q.title}</div>
-            <div class="comment-author">${q.author}</div>
-            <div class="comment-text">${q.text}</div>
-            <div class="comment-date">${q.date}</div>
+            <div class="question-title" style="font-weight:bold; font-size:1.1rem; margin-bottom:5px;">${escapeHtml(q.title)}</div>
+            <div class="comment-author">${escapeHtml(q.author)}</div>
+            <div class="comment-text">${escapeHtml(q.text)}</div>
+            <div class="comment-date">${escapeHtml(q.date)}</div>
             <div class="replies-container"></div>
             ${currentUser ? `
             <form class="reply-form" data-qid="${q.id}" style="margin-top:10px;">

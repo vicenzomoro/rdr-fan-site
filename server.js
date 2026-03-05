@@ -5,10 +5,29 @@ const path = require('path');
 const multer = require('multer');
 const axios = require('axios');
 const FormData = require('form-data');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
+// simple sanitizer to strip potentially dangerous characters
+const sanitize = (str) => {
+    if (typeof str !== 'string') return '';
+    return str.replace(/[&<>"']/g, (s) => {
+        switch (s) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            case "'": return '&#39;';
+            default: return s;
+        }
+    });
+};
+
 const upload = multer({ storage: multer.memoryStorage() });
-const VT_API_KEY = "96f1f811de74daf58d6fcaa6a12a5ca3ee19a930fb735d5d852fabcf40229c02";
+// secrets should come from environment variables (see .env or hosting configuration)
+const VT_API_KEY = process.env.VT_API_KEY || ""; // VirusTotal API key
+if (!VT_API_KEY) console.warn('Warning: VT_API_KEY is not defined. File scanning may not function properly.');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +38,9 @@ app.set('trust proxy', true);
 // Supabase Connection
 const supabaseUrl = process.env.SUPABASE_URL || 'https://utgvmwqtioghilavuceo.supabase.co';
 const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_hwHJAWfiOu82lxdweW4TQQ_KTvicO2-';
+if (!process.env.SUPABASE_KEY) {
+    console.warn('Warning: SUPABASE_KEY environment variable not set, using default publishable key. This may be insecure.');
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -29,13 +51,17 @@ app.use(express.static(__dirname));
 
 // API Routes
 app.post('/api/auth/register', async (req, res) => {
-    const { username, password } = req.body;
+    let { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Username and password required.' });
 
+    // sanitize inputs
+    username = sanitize(username);
+
     try {
+        const hashed = await bcrypt.hash(password, 10);
         const { data, error } = await supabase
             .from('users')
-            .insert([{ username, password, is_banned: false }])
+            .insert([{ username, password: hashed, is_banned: false }])
             .select();
 
         if (error) {
@@ -54,8 +80,7 @@ app.post('/api/auth/login', async (req, res) => {
         const { data, error } = await supabase
             .from('users')
             .select('*')
-            .eq('username', username)
-            .eq('password', password);
+            .eq('username', sanitize(username));
 
         if (error) throw error;
 
@@ -63,6 +88,10 @@ app.post('/api/auth/login', async (req, res) => {
             const user = data[0];
             if (user.is_banned) {
                 return res.status(403).json({ error: 'Sua conta foi banida pelo Xerife da cidade.' });
+            }
+            const match = await bcrypt.compare(password, user.password);
+            if (!match) {
+                return res.status(401).json({ error: 'Apelido ou senha incorretos.' });
             }
             res.json({ message: "logged_in", username });
         } else {
@@ -89,11 +118,15 @@ app.get('/api/comments', async (req, res) => {
 });
 
 app.post('/api/comments', async (req, res) => {
-    const { author, text, date } = req.body;
+    let { author, text, date } = req.body;
 
     if (!author || !text) {
         return res.status(400).json({ error: 'Author and text are required.' });
     }
+
+    // sanitize to avoid XSS
+    author = sanitize(author);
+    text = sanitize(text);
 
     try {
         const { data, error } = await supabase
@@ -127,8 +160,13 @@ app.get('/api/questions', async (req, res) => {
 });
 
 app.post('/api/questions', async (req, res) => {
-    const { author, title, text, date } = req.body;
+    let { author, title, text, date } = req.body;
     if (!author || !title || !text) return res.status(400).json({ error: 'Dados incompletos.' });
+
+    author = sanitize(author);
+    title = sanitize(title);
+    text = sanitize(text);
+
     try {
         const { data, error } = await supabase.from('questions').insert([{ author, title, text, date }]).select();
         if (error) throw error;
@@ -139,9 +177,13 @@ app.post('/api/questions', async (req, res) => {
 });
 
 app.post('/api/questions/:id/replies', async (req, res) => {
-    const { author, text, date } = req.body;
+    let { author, text, date } = req.body;
     const qid = req.params.id;
     if (!author || !text) return res.status(400).json({ error: 'Dados incompletos.' });
+
+    author = sanitize(author);
+    text = sanitize(text);
+
     try {
         const { data, error } = await supabase.from('replies').insert([{ question_id: qid, author, text, date }]).select();
         if (error) throw error;
@@ -153,8 +195,12 @@ app.post('/api/questions/:id/replies', async (req, res) => {
 
 // Feedback Routes
 app.post('/api/feedback', async (req, res) => {
-    const { username, message } = req.body;
+    let { username, message } = req.body;
     if (!username || !message) return res.status(400).json({ error: 'Faltam dados.' });
+
+    username = sanitize(username);
+    message = sanitize(message);
+
     try {
         const { error } = await supabase.from('feedback').insert([{ username, message }]);
         if (error) throw error;
@@ -180,12 +226,16 @@ app.get('/api/mods', async (req, res) => {
 
 // Mod Submission Routes (Direct File Upload with VirusTotal)
 app.post('/api/submissions/upload', upload.single('modFile'), async (req, res) => {
-    const { username, title, description } = req.body;
+    let { username, title, description } = req.body;
     const file = req.file;
 
     if (!username || !title || !file) {
         return res.status(400).json({ error: 'Dados incompletos (usuário, título e arquivo são obrigatórios).' });
     }
+
+    username = sanitize(username);
+    title = sanitize(title);
+    description = sanitize(description || '');
 
     try {
         const fileExt = file.originalname.split('.').pop();
@@ -407,8 +457,14 @@ app.delete('/api/admin/questions/:qid/replies/:rid', async (req, res) => {
 
 // AI Chat Route (Powered by Google Gemini)
 // AI Chat Route (Powered by Google Gemini)
-const GEMINI_API_KEY = "AIzaSyCnYO3mIUZ_a72obYofTi686elti2SsBS0";
+// Google Gemini API key
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+if (!GEMINI_API_KEY) console.warn('Warning: GEMINI_API_KEY not configured; AI chat will fail.');
+
+// master token for admin panel (should be strong and kept secret)
+const DEV_MASTER_KEY = process.env.DEV_MASTER_KEY || "";
+if (!DEV_MASTER_KEY) console.warn('Warning: DEV_MASTER_KEY is not set; admin verification will only accept Supabase key.');
 
 app.post('/api/chat', async (req, res) => {
     const { message } = req.body;
