@@ -241,4 +241,70 @@ document.addEventListener("DOMContentLoaded", () => {
             feedbackStatus.style.display = "block";
         }
     });
+
+    // === MOD GALLERY & SEARCH ===
+    const modsGallery = document.getElementById("mods-gallery");
+    const modsLoader = document.getElementById("mods-loader");
+    const modSearchInput = document.getElementById("mod-search");
+    let allMods = [];
+
+    const fetchMods = async (searchTerm = '') => {
+        try {
+            if (modsLoader) modsLoader.style.display = "block";
+            const response = await fetch(`/api/mods?search=${encodeURIComponent(searchTerm)}`);
+            const data = await response.json();
+            allMods = data.data || [];
+            renderMods(allMods);
+        } catch (error) {
+            console.error("Error fetching mods:", error);
+            if (modsGallery) modsGallery.innerHTML = '<p style="color: #ff4c4c;">Erro ao carregar a galeria de mods.</p>';
+        } finally {
+            if (modsLoader) modsLoader.style.display = "none";
+        }
+    };
+
+    const renderMods = (mods) => {
+        if (!modsGallery) return;
+        modsGallery.innerHTML = '';
+        if (mods.length === 0) {
+            modsGallery.innerHTML = '<p style="color: var(--text-muted);">Nenhum mod encontrado para essa busca.</p>';
+            return;
+        }
+
+        mods.forEach(mod => {
+            const modCard = document.createElement("div");
+            modCard.className = "mod-card-gallery reveal active";
+            modCard.innerHTML = `
+                <div class="mod-card-banner">MOD</div>
+                <div class="mod-content">
+                    <h3>${mod.title}</h3>
+                    <p>${mod.description || 'Sem descrição.'}</p>
+                    <div class="mod-card-footer">
+                        <span class="mod-author-tag">👤 ${mod.username}</span>
+                        <a href="${mod.link}" target="_blank" class="download-link-btn">Baixar</a>
+                    </div>
+                </div>
+            `;
+            modsGallery.appendChild(modCard);
+        });
+    };
+
+    window.handleSearch = () => {
+        const term = modSearchInput.value;
+        fetchMods(term);
+    };
+
+    window.filterMods = (type) => {
+        const navBtns = document.querySelectorAll(".mod-nav-btn");
+        navBtns.forEach(btn => btn.classList.remove("active"));
+        if (event) event.currentTarget.classList.add("active");
+
+        if (type === 'all' || type === 'recent') {
+            fetchMods();
+        } else if (type === 'popular') {
+            renderMods([...allMods].reverse());
+        }
+    };
+
+    if (modsGallery) fetchMods();
 });

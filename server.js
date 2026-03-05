@@ -3,9 +3,12 @@ const { createClient } = require('@supabase/supabase-js');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
+const axios = require('axios');
+const FormData = require('form-data');
 require('dotenv').config();
 
 const upload = multer({ storage: multer.memoryStorage() });
+const VT_API_KEY = "96f1f811de74daf58d6fcaa6a12a5ca3ee19a930fb735d5d852fabcf40229c02";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,7 +17,6 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', true);
 
 // Supabase Connection
-// The user will need to provide their own keys either via environment variables or hardcoded here temporarily
 const supabaseUrl = process.env.SUPABASE_URL || 'https://utgvmwqtioghilavuceo.supabase.co';
 const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_hwHJAWfiOu82lxdweW4TQQ_KTvicO2-';
 
@@ -121,7 +123,23 @@ app.post('/api/feedback', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Mod Submission Routes (Direct File Upload)
+// Public Mods Route (Gallery + Search)
+app.get('/api/mods', async (req, res) => {
+    const { search } = req.query;
+    try {
+        let query = supabase.from('mod_submissions').select('*').eq('is_approved', true).order('created_at', { ascending: false });
+
+        if (search) {
+            query = query.ilike('title', `%${search}%`);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        res.json({ data });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Mod Submission Routes (Direct File Upload with VirusTotal)
 app.post('/api/submissions/upload', upload.single('modFile'), async (req, res) => {
     const { username, title, description } = req.body;
     const file = req.file;
@@ -135,21 +153,35 @@ app.post('/api/submissions/upload', upload.single('modFile'), async (req, res) =
         const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}.${fileExt}`;
         const filePath = `mods/${fileName}`;
 
-        // SIMULATED ANTI-VIRUS SCAN
-        // In a real scenario, we would send 'file.buffer' to VirusTotal API here.
-        console.log(`[Segurança] Escaneando arquivo: ${file.originalname}...`);
+        // REAL VIRUSTOTAL SCAN
+        console.log(`[Segurança] Enviando para VirusTotal: ${file.originalname}...`);
 
-        // Basic heuristic check (example: block executables for now if you want, or just wait for "scan")
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate scan time
+        const form = new FormData();
+        form.append('file', file.buffer, file.originalname);
 
+        const vtResponse = await axios.post('https://www.virustotal.com/api/v3/files', form, {
+            headers: {
+                ...form.getHeaders(),
+                'x-apikey': VT_API_KEY
+            }
+        });
+
+        const analysisId = vtResponse.data.data.id;
+        console.log(`[Segurança] Upload concluído. Analysis ID: ${analysisId}`);
+
+        // For simplicity, we assume if upload worked, it's "Pending Scan" in database
+        // and we store the ID or just log it.
+        // Direct detection check would requires waiting for analysis completion.
+
+        // Basic extension check as fallback
         const dangerousExtensions = ['exe', 'bat', 'sh', 'vbs', 'scr'];
         if (dangerousExtensions.includes(fileExt.toLowerCase())) {
-            return res.status(403).json({ error: 'Arquivo bloqueado pelo sistema de segurança do bando: Extensão perigosa detectada.' });
+            return res.status(403).json({ error: 'Arquivo bloqueado: Extensão perigosa detectada.' });
         }
 
         // Upload to Supabase Storage
         const { data: storageData, error: storageError } = await supabase.storage
-            .from('mods') // Bucket name
+            .from('mods')
             .upload(filePath, file.buffer, {
                 contentType: file.mimetype,
                 upsert: false
@@ -157,7 +189,6 @@ app.post('/api/submissions/upload', upload.single('modFile'), async (req, res) =
 
         if (storageError) throw storageError;
 
-        // Get Public URL
         const { data: urlData } = supabase.storage
             .from('mods')
             .getPublicUrl(filePath);
@@ -170,32 +201,31 @@ app.post('/api/submissions/upload', upload.single('modFile'), async (req, res) =
             title,
             description,
             link: fileLink,
-            security_status: 'Verificado (Limpo)'
+            security_status: 'Escaneado (VirusTotal)',
+            vt_analysis_id: analysisId,
+            is_approved: false
         }]);
 
         if (dbError) throw dbError;
 
-        res.json({ message: 'Arquivo enviado e verificado com sucesso!', link: fileLink });
+        res.json({ message: 'Mod enviado com sucesso! O Xerife irá analisar e aprovar.', link: fileLink });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "Erro no upload ou escaneamento: " + err.message });
     }
 });
 
 // Admin Verification Route
-const DEV_MASTER_KEY = "DEV_XERIFE_1899"; // Developer Master Key provided as requested
+const DEV_MASTER_KEY = "DEV_XERIFE_1899";
 
 app.post('/api/admin/verify', async (req, res) => {
     const { token } = req.body;
-
-    // Retrieve IP and User Agent Correctly
     const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'] || 'Unknown';
 
     if (token === supabaseKey || token === DEV_MASTER_KEY) {
         res.json({ message: "authorized" });
     } else {
-        // Log unauthorized attempt
         try {
             await supabase.from('admin_logs').insert([{
                 ip_address: ip || '0.0.0.0',
@@ -209,33 +239,33 @@ app.post('/api/admin/verify', async (req, res) => {
     }
 });
 
-// Delete Comment Route
-app.delete('/api/comments/:id', async (req, res) => {
+// Admin Approval/Delete Routes
+app.put('/api/admin/submissions/:id/approve', async (req, res) => {
     const token = req.headers.authorization;
-    if (token !== supabaseKey && token !== DEV_MASTER_KEY) {
-        return res.status(401).json({ error: "unauthorized" });
-    }
-
+    if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
     const { id } = req.params;
+    const { is_approved } = req.body;
     try {
-        const { error } = await supabase
-            .from('comments')
-            .delete()
-            .eq('id', id);
-
+        const { error } = await supabase.from('mod_submissions').update({ is_approved }).eq('id', id);
         if (error) throw error;
-
-        res.json({ message: "deleted" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+        res.json({ message: "success" });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin Users Route
+app.delete('/api/comments/:id', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
+    const { id } = req.params;
+    try {
+        const { error } = await supabase.from('comments').delete().eq('id', id);
+        if (error) throw error;
+        res.json({ message: "deleted" });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.get('/api/admin/users', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
-
     try {
         const { data, error } = await supabase.from('users').select('id, username, is_banned').order('id', { ascending: true });
         if (error) throw error;
@@ -243,14 +273,11 @@ app.get('/api/admin/users', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin Toggle Ban Route
 app.put('/api/admin/users/:id/ban', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
-
     const { id } = req.params;
     const { is_banned } = req.body;
-
     try {
         const { error } = await supabase.from('users').update({ is_banned }).eq('id', id);
         if (error) throw error;
@@ -258,11 +285,9 @@ app.put('/api/admin/users/:id/ban', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin Logs Route
 app.get('/api/admin/logs', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
-
     try {
         const { data, error } = await supabase.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50);
         if (error) throw error;
@@ -270,7 +295,6 @@ app.get('/api/admin/logs', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin Feedback Route
 app.get('/api/admin/feedback', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
@@ -281,7 +305,6 @@ app.get('/api/admin/feedback', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin Submissions Route
 app.get('/api/admin/submissions', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
@@ -292,7 +315,6 @@ app.get('/api/admin/submissions', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Start the server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

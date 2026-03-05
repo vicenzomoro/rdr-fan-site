@@ -207,17 +207,43 @@ document.addEventListener("DOMContentLoaded", () => {
             if (data.data) {
                 data.data.forEach(sub => {
                     const date = new Date(sub.created_at).toLocaleString('pt-BR');
+                    const isApproved = sub.is_approved === true;
                     tableBody.innerHTML += `
                         <tr>
                             <td>${date}</td>
                             <td>${sub.username}</td>
                             <td>${sub.title}</td>
                             <td><span style="color: #28a745;">🛡️ ${sub.security_status || 'Pendente'}</span></td>
-                            <td><a href="${sub.link}" target="_blank" style="color: var(--primary-red); font-weight: bold;">📥 Baixar Arquivo</a></td>
+                            <td>
+                                <a href="${sub.link}" target="_blank" style="color: var(--primary-red); font-weight: bold; margin-right: 10px;">📥 Baixar</a>
+                                <button class="${isApproved ? 'unban-btn' : 'submit-button'}" 
+                                        style="font-size: 0.8rem; padding: 5px 10px;"
+                                        onclick="toggleModApproval(${sub.id}, ${!isApproved})">
+                                    ${isApproved ? 'Remover' : 'Aprovar'}
+                                </button>
+                            </td>
                         </tr>
                     `;
                 });
             }
         } catch (error) { console.error(error); }
+    };
+
+    window.toggleModApproval = async (id, status) => {
+        const action = status ? "aprovar" : "remover";
+        if (!confirm(`Deseja realmente ${action} este mod para a galeria pública?`)) return;
+
+        try {
+            const res = await fetch(`/api/admin/submissions/${id}/approve`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': adminToken
+                },
+                body: JSON.stringify({ is_approved: status })
+            });
+            if (res.ok) loadAdminSubmissions();
+            else alert("Falha na operação.");
+        } catch (err) { alert("Erro de conexão."); }
     };
 });

@@ -99,11 +99,6 @@ nav a::after {
     transition: width 0.3s ease;
 }
 
-nav a:hover::after {
-    width: 100%;
-}
-
-/* HERO SECTION */
 .hero-section {
     position: relative;
     height: 100vh;
@@ -232,6 +227,63 @@ nav a:hover::after {
     border-top: 1px solid var(--glass-border);
 }
 
+.mods-nav {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 30px 0;
+}
+
+.mod-nav-btn {
+    padding: 10px 20px;
+    background: rgba(40, 40, 40, 0.6);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    color: var(--text-main);
+    font-family: 'Rye', cursive;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.mod-nav-btn.active,
+.mod-nav-btn:hover {
+    background: var(--primary-red);
+    border-color: var(--primary-red);
+    box-shadow: 0 0 15px rgba(204, 0, 0, 0.4);
+}
+
+.search-container {
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto 50px;
+}
+
+.search-container input {
+    width: 100%;
+    padding: 15px 50px 15px 20px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid var(--glass-border);
+    border-radius: 30px;
+    color: #fff;
+    font-size: 1.1rem;
+    transition: all 0.3s;
+}
+
+.search-container input:focus {
+    outline: none;
+    border-color: var(--primary-red);
+    box-shadow: 0 0 15px rgba(204, 0, 0, 0.2);
+}
+
+.search-icon {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    color: var(--text-muted);
+}
+
 .mods-container {
     display: flex;
     gap: 30px;
@@ -239,52 +291,61 @@ nav a:hover::after {
     flex-wrap: wrap;
 }
 
-.mod-card {
+.mod-card-gallery {
     background: var(--bg-card);
     border: 1px solid var(--glass-border);
-    border-top: 5px solid #ffd700;
-    padding: 30px;
-    border-radius: 8px;
+    border-radius: 12px;
+    overflow: hidden;
     width: 100%;
-    max-width: 450px;
-    text-decoration: none;
-    color: var(--text-main);
-    transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 350px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
 }
 
-.mod-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 15px 40px rgba(255, 215, 0, 0.2);
-    border-color: rgba(255, 215, 0, 0.5);
-    border-top: 5px solid #ffea00;
+.mod-card-gallery:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+    border-color: var(--primary-red);
 }
 
-.mod-card h3 {
-    font-size: 1.8rem;
-    margin-bottom: 15px;
-    color: #fff;
-}
-
-.mod-card p {
-    font-size: 1rem;
-    line-height: 1.6;
-    color: var(--text-muted);
-    margin-bottom: 20px;
-}
-
-.visit-link {
-    display: inline-block;
-    color: #ffd700;
-    font-weight: bold;
+.mod-card-banner {
+    height: 120px;
+    background: linear-gradient(45deg, #1a1a1a, #333);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'Rye', cursive;
-    text-transform: uppercase;
-    transition: color 0.3s, padding-left 0.3s;
+    font-size: 2rem;
+    color: rgba(255, 255, 255, 0.05);
 }
 
-.mod-card:hover .visit-link {
-    color: #ffea00;
-    padding-left: 10px;
+.mod-card-gallery .mod-content {
+    padding: 20px;
+}
+
+.mod-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--glass-border);
+    padding-top: 15px;
+    margin-top: 15px;
+}
+
+.mod-author-tag {
+    font-size: 0.8rem;
+    color: #ffd700;
+}
+
+.download-link-btn {
+    background: var(--primary-red);
+    color: #fff;
+    padding: 6px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: bold;
 }
 
 /* COMMENTS SECTION */
@@ -323,12 +384,6 @@ nav a:hover::after {
     transition: border-color 0.3s;
 }
 
-.comment-form input:focus,
-.comment-form textarea:focus {
-    outline: none;
-    border-color: var(--primary-red);
-}
-
 .submit-button {
     padding: 15px;
     background: var(--primary-red);
@@ -339,10 +394,6 @@ nav a:hover::after {
     font-family: 'Rye', cursive;
     cursor: pointer;
     transition: background 0.3s;
-}
-
-.submit-button:hover {
-    background: var(--dark-red);
 }
 
 .comments-list {
@@ -364,11 +415,6 @@ nav a:hover::after {
     color: #ffd700;
     margin-bottom: 10px;
     font-size: 1.1rem;
-}
-
-.comment-text {
-    line-height: 1.5;
-    color: var(--text-main);
 }
 
 .comment-date {

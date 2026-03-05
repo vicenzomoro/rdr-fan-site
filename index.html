@@ -68,26 +68,25 @@
         </section>
 
         <section id="mods" class="mods-section reveal">
-            <h2 class="section-title">Expanda o Mundo</h2>
-            <div class="mods-container">
-                <a href="https://www.rdr2mods.com/" target="_blank" rel="noopener noreferrer" class="mod-card">
-                    <div class="mod-content">
-                        <h3>RDR2Mods</h3>
-                        <p>A principal comunidade dedicada a modificações para Red Dead Redemption 2. Encontre texturas,
-                            scripts, e ferramentas para personalizar a sua experiência.</p>
-                        <span class="visit-link">Visitar Site ➔</span>
-                    </div>
-                </a>
+            <h2 class="section-title">Galeria de Mods</h2>
 
-                <a href="https://www.nexusmods.com/reddeadredemption2" target="_blank" rel="noopener noreferrer"
-                    class="mod-card">
-                    <div class="mod-content">
-                        <h3>Nexus Mods</h3>
-                        <p>Uma gigantesca plataforma com milhares de mods incríveis para RDR2, desde aprimoramentos
-                            gráficos até mudanças completas no gameplay.</p>
-                        <span class="visit-link">Visitar Site ➔</span>
-                    </div>
-                </a>
+            <!-- Nexus-like Menu -->
+            <div class="mods-nav">
+                <button class="mod-nav-btn active" onclick="filterMods('all')">Todos</button>
+                <button class="mod-nav-btn" onclick="filterMods('recent')">Recentes</button>
+                <button class="mod-nav-btn" onclick="filterMods('popular')">Populares</button>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="search-container">
+                <input type="text" id="mod-search"
+                    placeholder="Pesquisar mods da gangue... (ex: Arthur, Textura, Reali)" oninput="handleSearch()">
+                <span class="search-icon">🔍</span>
+            </div>
+
+            <div id="mods-gallery" class="mods-container">
+                <!-- Mods dinâmicos aqui -->
+                <div class="loader" id="mods-loader">Carregando mods do bando...</div>
             </div>
         </section>
 
