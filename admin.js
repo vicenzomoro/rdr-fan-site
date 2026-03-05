@@ -2,10 +2,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const loginForm = document.getElementById("login-form");
     const loginSection = document.getElementById("login-section");
     const panelSection = document.getElementById("panel-section");
-    const commentsList = document.getElementById("admin-comments-list");
     const loginError = document.getElementById("login-error");
 
+    // Tabs elements
+    const commentsList = document.getElementById("admin-comments-list");
+    const usersTableBody = document.getElementById("users-table-body");
+    const logsTableBody = document.getElementById("logs-table-body");
+
     let adminToken = "";
+
+    window.switchTab = (tabName) => {
+        document.querySelectorAll('.admin-section').forEach(sec => sec.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        document.querySelector(`.tab-btn[onclick="switchTab('${tabName}')"]`).classList.add('active');
+
+        if (tabName === 'comments') loadAdminComments();
+        if (tabName === 'users') loadAdminUsers();
+        if (tabName === 'logs') loadAdminLogs();
+    };
 
     loginForm.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -22,7 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 adminToken = passInput;
                 loginSection.style.display = 'none';
                 panelSection.style.display = 'block';
-                loadAdminComments();
+                loadAdminComments(); // Load default tab
             } else {
                 loginError.style.display = 'block';
             }
@@ -32,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // === COMMENTS TAB ===
     const loadAdminComments = async () => {
         try {
             const response = await fetch('/api/comments');
@@ -43,15 +60,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 data.data.forEach(comment => {
                     const el = document.createElement("div");
                     el.classList.add("comment-item");
-                    // Adiciona o estilo inline para alinhar o botão
                     el.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div>
                                 <div class="comment-author">${comment.author}</div>
                                 <div class="comment-text">${comment.text}</div>
-                                <div class="comment-date">${comment.date}</div>
+                                <div class="comment-date">${comment.date || '-'}</div>
                             </div>
-                            <button onclick="deleteComment(${comment.id})" style="background: var(--primary-red); color: white; border: 1px solid var(--dark-red); padding: 8px 15px; cursor: pointer; border-radius: 4px; font-family: 'Rye', cursive; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: background 0.2s;">Banir</button>
+                            <button onclick="deleteComment(${comment.id})" class="ban-btn" style="font-family: 'Rye', cursive;">Apagar</button>
                         </div>
                     `;
                     commentsList.appendChild(el);
@@ -60,30 +76,96 @@ document.addEventListener("DOMContentLoaded", () => {
                 commentsList.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Nenhum relato encontrado na cidade.</p>';
             }
         } catch (error) {
-            console.error("Error fetching comments:", error);
             commentsList.innerHTML = '<p style="color: #ff4c4c; text-align: center;">Erro ao carregar os comentários.</p>';
         }
     };
 
     window.deleteComment = async (id) => {
         if (!confirm("Tem certeza que deseja apagar este relato da face da terra?")) return;
-
         try {
             const res = await fetch(`/api/comments/${id}`, {
                 method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }
+            });
+            if (res.ok) loadAdminComments();
+            else alert("Falha ao deletar.");
+        } catch (err) { alert("Erro de conexão."); }
+    };
+
+    // === USERS TAB ===
+    const loadAdminUsers = async () => {
+        try {
+            const response = await fetch('/api/admin/users', {
+                headers: { 'Authorization': adminToken }
+            });
+            const data = await response.json();
+
+            usersTableBody.innerHTML = '';
+            if (data.data) {
+                data.data.forEach(user => {
+                    const isBanned = user.is_banned === true;
+                    usersTableBody.innerHTML += `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>${user.username}</td>
+                            <td style="color: ${isBanned ? '#ff4c4c' : '#28a745'}; font-weight: bold;">
+                                ${isBanned ? 'Preso / Banido' : 'Livre'}
+                            </td>
+                            <td>
+                                <button class="${isBanned ? 'unban-btn' : 'ban-btn'}" onclick="toggleBan(${user.id}, ${!isBanned})">
+                                    ${isBanned ? 'Soltar (Desbanir)' : 'Prender (Banir)'}
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+        } catch (error) { console.error(error); }
+    };
+
+    window.toggleBan = async (userId, banStatus) => {
+        const action = banStatus ? "banir/prender" : "desbanir/soltar";
+        if (!confirm(`Deseja realmente ${action} este usuário?`)) return;
+
+        try {
+            const res = await fetch(`/api/admin/users/${userId}/ban`, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': adminToken
-                }
+                },
+                body: JSON.stringify({ is_banned: banStatus })
             });
+            if (res.ok) loadAdminUsers();
+            else alert("Falha na operação.");
+        } catch (err) { alert("Erro de conexão."); }
+    };
 
-            if (res.ok) {
-                loadAdminComments();
+    // === SECURITY LOGS TAB ===
+    const loadAdminLogs = async () => {
+        try {
+            const response = await fetch('/api/admin/logs', {
+                headers: { 'Authorization': adminToken }
+            });
+            const data = await response.json();
+
+            logsTableBody.innerHTML = '';
+
+            if (data.data && data.data.length > 0) {
+                data.data.forEach(log => {
+                    const dateStr = new Date(log.created_at).toLocaleString('pt-BR');
+                    logsTableBody.innerHTML += `
+                        <tr>
+                            <td>${dateStr}</td>
+                            <td style="color: #ff4c4c; font-weight: bold;">${log.ip_address}</td>
+                            <td style="font-size: 0.8rem; color: #ccc;">${log.user_agent}</td>
+                            <td><code style="background: rgba(0,0,0,0.8); padding: 5px; border-radius:3px;">${log.attempt_password || 'Desconhecida'}</code></td>
+                        </tr>
+                    `;
+                });
             } else {
-                alert("Falha ao deletar o comentário. Apenas o Xerife tem esse poder!");
+                logsTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Nenhuma invasão registrada recentemente.</td></tr>';
             }
-        } catch (err) {
-            alert("Erro ao conectar com o servidor.");
-        }
+        } catch (error) { console.error(error); }
     };
 });

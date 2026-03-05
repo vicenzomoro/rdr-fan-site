@@ -52,6 +52,10 @@ app.post('/api/auth/login', async (req, res) => {
         if (error) throw error;
 
         if (data.length > 0) {
+            const user = data[0];
+            if (user.is_banned) {
+                return res.status(403).json({ error: 'Sua conta foi banida pelo Xerife da cidade.' });
+            }
             res.json({ message: "logged_in", username });
         } else {
             res.status(401).json({ error: 'Apelido ou senha incorretos.' });
@@ -103,11 +107,26 @@ app.post('/api/comments', async (req, res) => {
 // Admin Verification Route
 const DEV_MASTER_KEY = "DEV_XERIFE_1899"; // Developer Master Key provided as requested
 
-app.post('/api/admin/verify', (req, res) => {
+app.post('/api/admin/verify', async (req, res) => {
     const { token } = req.body;
+
+    // Retrieve IP and User Agent
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'] || 'Unknown';
+
     if (token === supabaseKey || token === DEV_MASTER_KEY) {
         res.json({ message: "authorized" });
     } else {
+        // Log unauthorized attempt
+        try {
+            await supabase.from('admin_logs').insert([{
+                ip_address: ip,
+                user_agent: userAgent,
+                attempt_password: token.substring(0, 15) // prevent overly long inserts
+            }]);
+        } catch (e) {
+            console.error("Failed to log security breach:", e);
+        }
         res.status(401).json({ error: "unauthorized" });
     }
 });
@@ -132,6 +151,45 @@ app.delete('/api/comments/:id', async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// Admin Users Route
+app.get('/api/admin/users', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
+
+    try {
+        const { data, error } = await supabase.from('users').select('id, username, is_banned').order('id', { ascending: true });
+        if (error) throw error;
+        res.json({ data });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Admin Toggle Ban Route
+app.put('/api/admin/users/:id/ban', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
+
+    const { id } = req.params;
+    const { is_banned } = req.body;
+
+    try {
+        const { error } = await supabase.from('users').update({ is_banned }).eq('id', id);
+        if (error) throw error;
+        res.json({ message: "success" });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Admin Logs Route
+app.get('/api/admin/logs', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
+
+    try {
+        const { data, error } = await supabase.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50);
+        if (error) throw error;
+        res.json({ data });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Start the server
