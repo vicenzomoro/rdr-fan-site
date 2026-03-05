@@ -11,6 +11,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let adminToken = "";
 
+    // utility functions
+    const loadStats = async () => {
+        if (!adminToken) return;
+        try {
+            const res = await fetch('/api/admin/stats', {
+                headers: { 'Authorization': adminToken }
+            });
+            const data = await res.json();
+            document.getElementById('stat-users').querySelector('span').innerText = data.users || 0;
+            document.getElementById('stat-comments').querySelector('span').innerText = data.comments || 0;
+            document.getElementById('stat-questions').querySelector('span').innerText = data.questions || 0;
+            document.getElementById('stat-mods').querySelector('span').innerText = data.mods || 0;
+            document.getElementById('stat-pending-mods').querySelector('span').innerText = data.pendingMods || 0;
+            document.getElementById('stat-feedback').querySelector('span').innerText = data.feedback || 0;
+        } catch (err) {
+            console.error('Erro ao carregar estatísticas:', err);
+        }
+    };
+
+    const logoutAdmin = () => {
+        adminToken = '';
+        window.location.reload();
+    };
+
     window.switchTab = (tabName) => {
         document.querySelectorAll('.admin-section').forEach(sec => sec.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -18,6 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById(`tab-${tabName}`).classList.add('active');
         document.querySelector(`.tab-btn[onclick="switchTab('${tabName}')"]`).classList.add('active');
 
+        if (tabName === 'dashboard') loadStats();
         if (tabName === 'comments') loadAdminComments();
         if (tabName === 'users') loadAdminUsers();
         if (tabName === 'logs') loadAdminLogs();
@@ -41,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 adminToken = passInput;
                 loginSection.style.display = 'none';
                 panelSection.style.display = 'block';
-                loadAdminComments(); // Load default tab
+                switchTab('dashboard'); // show dashboard on entry
             } else {
                 loginError.style.display = 'block';
             }
@@ -52,15 +77,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // === COMMENTS TAB ===
-    const loadAdminComments = async () => {
+    const loadAdminComments = async (searchTerm = '') => {
         try {
             const response = await fetch('/api/comments');
             const data = await response.json();
 
             commentsList.innerHTML = '';
 
-            if (data.data && data.data.length > 0) {
-                data.data.forEach(comment => {
+            let comments = (data.data && Array.isArray(data.data)) ? data.data : [];
+            if (searchTerm) {
+                comments = comments.filter(c => c.author.toLowerCase().includes(searchTerm.toLowerCase()) || c.text.toLowerCase().includes(searchTerm.toLowerCase()));
+            }
+
+            if (comments.length > 0) {
+                comments.forEach(comment => {
                     const el = document.createElement("div");
                     el.classList.add("comment-item");
                     el.innerHTML = `
@@ -83,6 +113,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
+    // search handler for comments
+    const commentsSearchInput = document.getElementById('search-comments');
+    if (commentsSearchInput) {
+        commentsSearchInput.addEventListener('input', () => {
+            loadAdminComments(commentsSearchInput.value);
+        });
+    }
+
+
     window.deleteComment = async (id) => {
         if (!confirm("Tem certeza que deseja apagar este relato da face da terra?")) return;
         try {
@@ -90,13 +129,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }
             });
-            if (res.ok) loadAdminComments();
+            if (res.ok) { loadAdminComments(); loadStats(); }
             else alert("Falha ao deletar.");
         } catch (err) { alert("Erro de conexão."); }
     };
 
     // === USERS TAB ===
-    const loadAdminUsers = async () => {
+    const loadAdminUsers = async (searchTerm = '') => {
         try {
             const response = await fetch('/api/admin/users', {
                 headers: { 'Authorization': adminToken }
@@ -104,8 +143,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
 
             usersTableBody.innerHTML = '';
-            if (data.data) {
-                data.data.forEach(user => {
+            let users = data.data || [];
+            if (searchTerm) {
+                users = users.filter(u => u.username.toLowerCase().includes(searchTerm.toLowerCase()));
+            }
+            if (users.length) {
+                users.forEach(user => {
                     const isBanned = user.is_banned === true;
                     usersTableBody.innerHTML += `
                         <tr>
@@ -122,9 +165,18 @@ document.addEventListener("DOMContentLoaded", () => {
                         </tr>
                     `;
                 });
+            } else {
+                usersTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Nenhum usuário encontrado.</td></tr>';
             }
         } catch (error) { console.error(error); }
     };
+
+    const usersSearchInput = document.getElementById('search-users');
+    if (usersSearchInput) {
+        usersSearchInput.addEventListener('input', () => {
+            loadAdminUsers(usersSearchInput.value);
+        });
+    }
 
     window.toggleBan = async (userId, banStatus) => {
         const action = banStatus ? "banir/prender" : "desbanir/soltar";
@@ -139,13 +191,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
                 body: JSON.stringify({ is_banned: banStatus })
             });
-            if (res.ok) loadAdminUsers();
+            if (res.ok) { loadAdminUsers(); loadStats(); }
             else alert("Falha na operação.");
         } catch (err) { alert("Erro de conexão."); }
     };
 
     // === SECURITY LOGS TAB ===
-    const loadAdminLogs = async () => {
+    const loadAdminLogs = async (searchTerm = '') => {
         try {
             const response = await fetch('/api/admin/logs', {
                 headers: { 'Authorization': adminToken }
@@ -153,9 +205,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
 
             logsTableBody.innerHTML = '';
-
-            if (data.data && data.data.length > 0) {
-                data.data.forEach(log => {
+            let logs = data.data || [];
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                logs = logs.filter(l => l.ip_address.toLowerCase().includes(term) || (l.user_agent||'').toLowerCase().includes(term));
+            }
+            if (logs.length > 0) {
+                logs.forEach(log => {
                     const dateStr = new Date(log.created_at).toLocaleString('pt-BR');
                     logsTableBody.innerHTML += `
                         <tr>
@@ -172,8 +228,15 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) { console.error(error); }
     };
 
+    const logsSearchInput = document.getElementById('search-logs');
+    if (logsSearchInput) {
+        logsSearchInput.addEventListener('input', () => {
+            loadAdminLogs(logsSearchInput.value);
+        });
+    }
+
     // === FEEDBACK TAB ===
-    const loadAdminFeedback = async () => {
+    const loadAdminFeedback = async (searchTerm = '') => {
         try {
             const response = await fetch('/api/admin/feedback', {
                 headers: { 'Authorization': adminToken }
@@ -181,9 +244,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
             const tableBody = document.getElementById("feedback-table-body");
             tableBody.innerHTML = '';
-            if (data.data) {
-                data.data.forEach(fb => {
-                    const date = new Date(fb.created_at).toLocaleString('pt-BR');
+            let feedbacks = data.data || [];
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                feedbacks = feedbacks.filter(fb => fb.username.toLowerCase().includes(term) || fb.message.toLowerCase().includes(term));
+            }
+            if (feedbacks.length) {
+                feedbacks.forEach(fb => {
+                    const date = new Date(fb.created_at).toLocaleDateString('pt-BR');
                     tableBody.innerHTML += `
                         <tr>
                             <td>${date}</td>
@@ -192,12 +260,22 @@ document.addEventListener("DOMContentLoaded", () => {
                         </tr>
                     `;
                 });
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Sem feedbacks.</td></tr>';
             }
         } catch (error) { console.error(error); }
     };
 
+    const feedbackSearchInput = document.getElementById('search-feedback');
+    if (feedbackSearchInput) {
+        feedbackSearchInput.addEventListener('input', () => {
+            loadAdminFeedback(feedbackSearchInput.value);
+        });
+    }
+
+
     // === QUESTIONS TAB ===
-    const loadAdminQuestions = async () => {
+    const loadAdminQuestions = async (searchTerm = '') => {
         try {
             const response = await fetch('/api/admin/questions', {
                 headers: { 'Authorization': adminToken }
@@ -205,8 +283,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
             const list = document.getElementById('admin-questions-list');
             list.innerHTML = '';
-            if (data.data) {
-                data.data.forEach(q => {
+            let qs = data.data || [];
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                qs = qs.filter(q => q.title.toLowerCase().includes(term) || q.author.toLowerCase().includes(term) || q.text.toLowerCase().includes(term));
+            }
+            if (qs.length) {
+                qs.forEach(q => {
                     const qDiv = document.createElement('div');
                     qDiv.className = 'comment-item';
                     qDiv.innerHTML = `
@@ -244,6 +327,13 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) { console.error(error); }
     };
 
+    const questionsSearchInput = document.getElementById('search-questions');
+    if (questionsSearchInput) {
+        questionsSearchInput.addEventListener('input', () => {
+            loadAdminQuestions(questionsSearchInput.value);
+        });
+    }
+
     window.deleteQuestion = async (id) => {
         if (!confirm("Tem certeza que deseja apagar esta dúvida e todas as respostas?")) return;
         try {
@@ -251,7 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }
             });
-            if (res.ok) loadAdminQuestions();
+            if (res.ok) { loadAdminQuestions(); loadStats(); }
             else alert("Falha ao deletar.");
         } catch (err) { alert("Erro de conexão."); }
     };
@@ -263,14 +353,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }
             });
-            if (res.ok) loadAdminQuestions();
+            if (res.ok) { loadAdminQuestions(); loadStats(); }
             else alert("Falha ao deletar.");
         } catch (err) { alert("Erro de conexão."); }
     };
 
 
     // === SUBMISSIONS TAB ===
-    const loadAdminSubmissions = async () => {
+    const loadAdminSubmissions = async (searchTerm = '') => {
         try {
             const response = await fetch('/api/admin/submissions', {
                 headers: { 'Authorization': adminToken }
@@ -278,9 +368,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
             const tableBody = document.getElementById("submissions-table-body");
             tableBody.innerHTML = '';
-            if (data.data) {
-                data.data.forEach(sub => {
-                    const date = new Date(sub.created_at).toLocaleString('pt-BR');
+            let subs = data.data || [];
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                subs = subs.filter(s => s.username.toLowerCase().includes(term) || s.title.toLowerCase().includes(term));
+            }
+            if (subs.length) {
+                subs.forEach(sub => {
+                    const date = new Date(sub.created_at).toLocaleDateString('pt-BR');
                     const isApproved = sub.is_approved === true;
                     tableBody.innerHTML += `
                         <tr>
@@ -299,9 +394,77 @@ document.addEventListener("DOMContentLoaded", () => {
                         </tr>
                     `;
                 });
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Nenhum mod encontrado.</td></tr>';
             }
         } catch (error) { console.error(error); }
     };
+
+    const submissionsSearchInput = document.getElementById('search-submissions');
+    if (submissionsSearchInput) {
+        submissionsSearchInput.addEventListener('input', () => {
+            loadAdminSubmissions(submissionsSearchInput.value);
+        });
+    }
+
+    // === Export CSV Feature ===
+    const downloadCSV = (csv, filename) => {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const toCSV = (rows) => {
+        if (!rows.length) return '';
+        const headers = Object.keys(rows[0]);
+        const lines = [headers.join(',')];
+        rows.forEach(r => {
+            const values = headers.map(h => {
+                let val = r[h] === null || r[h] === undefined ? '' : String(r[h]);
+                if (val.includes(',') || val.includes('"')) {
+                    val = '"' + val.replace(/"/g, '""') + '"';
+                }
+                return val;
+            });
+            lines.push(values.join(','));
+        });
+        return lines.join('\n');
+    };
+
+    const exportTable = async (type) => {
+        let endpoint = '';
+        switch(type) {
+            case 'comments': endpoint = '/api/comments'; break;
+            case 'users': endpoint = '/api/admin/users'; break;
+            case 'logs': endpoint = '/api/admin/logs'; break;
+            case 'feedback': endpoint = '/api/admin/feedback'; break;
+            case 'submissions': endpoint = '/api/admin/submissions'; break;
+            case 'questions': endpoint = '/api/admin/questions'; break;
+        }
+        if (!endpoint) return;
+        try {
+            const res = await fetch(endpoint, { headers: { 'Authorization': adminToken } });
+            const data = await res.json();
+            let rows = data.data || [];
+            const csv = toCSV(rows);
+            downloadCSV(csv, type + '.csv');
+        } catch (err) {
+            console.error('Erro exportando tabela', type, err);
+            alert('Falha ao exportar ' + type);
+        }
+    };
+    document.querySelectorAll('.export-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-table');
+            exportTable(tab);
+        });
+    });
 
     window.toggleModApproval = async (id, status) => {
         const action = status ? "aprovar" : "remover";
@@ -316,7 +479,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
                 body: JSON.stringify({ is_approved: status })
             });
-            if (res.ok) loadAdminSubmissions();
+            if (res.ok) { loadAdminSubmissions(); loadStats(); }
             else alert("Falha na operação.");
         } catch (err) { alert("Erro de conexão."); }
     };

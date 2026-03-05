@@ -344,6 +344,32 @@ app.get('/api/admin/feedback', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Admin statistics summary (counts)
+app.get('/api/admin/stats', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== supabaseKey && token !== DEV_MASTER_KEY) return res.status(401).json({ error: "unauthorized" });
+    try {
+        const [{ count: usersCount }, { count: commentsCount }, { count: questionsCount }, { count: modsCount }, { count: pendingMods }, { count: feedbackCount }] = await Promise.all([
+            supabase.from('users').select('*', { count: 'exact' }),
+            supabase.from('comments').select('*', { count: 'exact' }),
+            supabase.from('questions').select('*', { count: 'exact' }),
+            supabase.from('mod_submissions').select('*', { count: 'exact' }).eq('is_approved', true),
+            supabase.from('mod_submissions').select('*', { count: 'exact' }).eq('is_approved', false),
+            supabase.from('feedback').select('*', { count: 'exact' })
+        ]);
+        res.json({
+            users: usersCount,
+            comments: commentsCount,
+            questions: questionsCount,
+            mods: modsCount,
+            pendingMods: pendingMods,
+            feedback: feedbackCount
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Admin Q&A management
 app.get('/api/admin/questions', async (req, res) => {
     const token = req.headers.authorization;

@@ -84,6 +84,99 @@
             border-radius: 4px;
             cursor: pointer;
         }
+
+        /* professional admin layout */
+        .admin-dashboard {
+            display: flex;
+            min-height: 80vh;
+        }
+        .admin-sidebar {
+            width: 220px;
+            background: rgba(0,0,0,0.6);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: fixed;
+            top: 80px;
+            bottom: 0;
+            left: 0;
+            overflow-y: auto;
+        }
+        .admin-sidebar .tab-btn {
+            text-align: left;
+            width: 100%;
+            padding: 10px 15px;
+            border-radius: 4px;
+            background: transparent;
+            color: var(--text-main);
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .admin-sidebar .tab-btn.active,
+        .admin-sidebar .tab-btn:hover {
+            background: var(--primary-red);
+            color: #fff;
+        }
+        .admin-content {
+            margin-left: 240px;
+            padding: 30px;
+            flex-grow: 1;
+        }
+        .stats-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: rgba(30,30,30,0.8);
+            padding: 20px;
+            border-radius: 8px;
+            flex: 1 1 150px;
+            text-align: center;
+            font-size: 1.1rem;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .stat-card span {
+            display: block;
+            font-size: 2rem;
+            margin-top: 8px;
+            color: #ffd700;
+        }
+        .table-search-container {
+            margin-bottom: 15px;
+        }
+        .table-search-container input {
+            width: 100%;
+            padding: 10px 15px;
+            border-radius: 4px;
+            border: 1px solid var(--glass-border);
+            background: rgba(0,0,0,0.5);
+            color: #fff;
+        }
+        .table-search-container input:focus {
+            outline: none;
+            border-color: var(--primary-red);
+            box-shadow: 0 0 10px rgba(204,0,0,0.3);
+        }
+        .export-btn {
+            margin-left: 10px;
+            padding: 8px 12px;
+            background: var(--primary-red);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        .export-btn:hover {
+            background: var(--dark-red);
+        }
     </style>
 </head>
 
@@ -116,19 +209,142 @@
         </section>
 
         <!-- DASHBOARD ADMIN -->
-        <section id="panel-section" class="comments-section"
-            style="display: none; min-height: 80vh; max-width: 1000px; margin: 0 auto;">
-            <div class="comments-container" style="max-width: 100%;">
-
-                <div class="admin-nav">
-                    <button class="tab-btn active" onclick="switchTab('comments')">Moderar Relatos</button>
+        <section id="panel-section" class="comments-section" style="display: none; min-height: 80vh;">
+            <div class="admin-dashboard">
+                <aside class="admin-sidebar">
+                    <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+                    <button class="tab-btn" onclick="switchTab('comments')">Moderar Relatos</button>
                     <button class="tab-btn" onclick="switchTab('users')">Cidadãos (Prisões)</button>
-                    <button class="tab-btn" onclick="switchTab('logs')">Segurança (Invasões)</button>
+                    <button class="tab-btn" onclick="switchTab('logs')">Segurança</button>
                     <button class="tab-btn" onclick="switchTab('feedback')">Feedbacks</button>
                     <button class="tab-btn" onclick="switchTab('questions')">Dúvidas</button>
                     <button class="tab-btn" onclick="switchTab('submissions')">Envios de Mods</button>
+                    <button class="tab-btn" onclick="logoutAdmin()" style="margin-top:20px;color:#ff4c4c;">Logout</button>
+                </aside>
+                <div class="admin-content">
+                    <div id="tab-dashboard" class="admin-section active">
+                        <h2 class="section-title" style="text-align:left;">Resumo Rápido</h2>
+                        <div class="stats-cards">
+                            <div class="stat-card" id="stat-users">Usuários: <span>0</span></div>
+                            <div class="stat-card" id="stat-comments">Relatos: <span>0</span></div>
+                            <div class="stat-card" id="stat-questions">Dúvidas: <span>0</span></div>
+                            <div class="stat-card" id="stat-mods">Mods aprovados: <span>0</span></div>
+                            <div class="stat-card" id="stat-pending-mods">Mods pendentes: <span>0</span></div>
+                            <div class="stat-card" id="stat-feedback">Feedbacks: <span>0</span></div>
+                        </div>
+                    </div>
+                    <div id="tab-comments" class="admin-section">
+                        <div class="table-search-container">
+                            <input type="text" id="search-comments" placeholder="Buscar relatos...">
+                            <button class="export-btn" data-table="comments">Exportar CSV</button>
+                        </div>
+                        <h2 class="section-title" style="font-size: 1.5rem; text-align: left;">Moderar Relatos</h2>
+                        <div id="admin-comments-list" class="comments-list">
+                            <!-- Comentários renderizados aqui -->
+                        </div>
+                    </div>
+                    <div id="tab-users" class="admin-section">
+                        <div class="table-search-container">
+                            <input type="text" id="search-users" placeholder="Buscar usuários...">
+                            <button class="export-btn" data-table="users">Exportar CSV</button>
+                        </div>
+                        <h2 class="section-title" style="font-size: 1.5rem; text-align: left;">Cidadãos da Cidade</h2>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Apelido</th>
+                                        <th>Status (Prisão)</th>
+                                        <th>Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body">
+                                    <!-- Usuários aqui -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="tab-logs" class="admin-section">
+                        <div class="table-search-container">
+                            <input type="text" id="search-logs" placeholder="Buscar invasões...">
+                            <button class="export-btn" data-table="logs">Exportar CSV</button>
+                        </div>
+                        <h2 class="section-title" style="font-size: 1.5rem; text-align: left;">Tentativas de Invasão Detidas
+                        </h2>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>IP do Invasor</th>
+                                        <th>Navegador/Dispositivo</th>
+                                        <th>Senha Tentada</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logs-table-body">
+                                    <!-- Logs aqui -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="tab-feedback" class="admin-section">
+                        <div class="table-search-container">
+                            <input type="text" id="search-feedback" placeholder="Buscar feedbacks...">
+                            <button class="export-btn" data-table="feedback">Exportar CSV</button>
+                        </div>
+                        <h2 class="section-title" style="font-size: 1.5rem; text-align: left;">Feedbacks dos Fãs</h2>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Usuário</th>
+                                        <th>Mensagem</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="feedback-table-body">
+                                    <!-- Feedbacks aqui -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="tab-questions" class="admin-section">
+                        <div class="table-search-container">
+                            <input type="text" id="search-questions" placeholder="Buscar dúvidas...">
+                            <button class="export-btn" data-table="questions">Exportar CSV</button>
+                        </div>
+                        <h2 class="section-title" style="font-size: 1.5rem; text-align: left;">Dúvidas Postadas</h2>
+                        <div id="admin-questions-list" class="comments-list">
+                            <!-- perguntas e respostas vindas da API -->
+                        </div>
+                    </div>
+                    <div id="tab-submissions" class="admin-section">
+                        <div class="table-search-container">
+                            <input type="text" id="search-submissions" placeholder="Buscar mods...">
+                            <button class="export-btn" data-table="submissions">Exportar CSV</button>
+                        </div>
+                        <h2 class="section-title" style="font-size: 1.5rem; text-align: left;">Mods Enviados pelo Bando</h2>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Usuário</th>
+                                        <th>Título</th>
+                                        <th>Status de Segurança</th>
+                                        <th>Arquivo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="submissions-table-body">
+                                    <!-- Submissões aqui -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-
+            </div>
+        </section>
                 <!-- Tabela de Comentários -->
                 <div id="tab-comments" class="admin-section active">
                     <h2 class="section-title" style="font-size: 1.5rem; text-align: left;">Moderar Relatos</h2>
