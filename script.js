@@ -34,6 +34,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const commentsList = document.getElementById("comments-list");
     const API_URL = '/api/comments';
 
+    // Check Login State
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+        document.getElementById('nav-login-btn').innerText = 'Sair (' + currentUser + ')';
+        document.getElementById('nav-login-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('currentUser');
+            window.location.reload();
+        });
+        document.getElementById('author').value = currentUser;
+        document.getElementById('author').disabled = true;
+    } else {
+        const textInput = document.getElementById("text");
+        textInput.placeholder = "Você precisa estar logado para comentar.";
+        textInput.disabled = true;
+        document.getElementById("author").disabled = true;
+        document.getElementById("author").placeholder = "Visitante";
+    }
+
     const renderComment = (comment) => {
         const commentEl = document.createElement("div");
         commentEl.classList.add("comment-item");
