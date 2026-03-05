@@ -297,7 +297,10 @@ document.addEventListener("DOMContentLoaded", () => {
     window.filterMods = (type) => {
         const navBtns = document.querySelectorAll(".mod-nav-btn");
         navBtns.forEach(btn => btn.classList.remove("active"));
-        if (event) event.currentTarget.classList.add("active");
+
+        // Find the button that was clicked
+        const clickedBtn = Array.from(navBtns).find(btn => btn.innerText.toLowerCase().includes(type.toLowerCase()) || (type === 'all' && btn.innerText === 'Todos'));
+        if (clickedBtn) clickedBtn.classList.add("active");
 
         if (type === 'all' || type === 'recent') {
             fetchMods();
