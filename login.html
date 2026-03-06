@@ -129,6 +129,7 @@
                     msg.innerText = data.error || "Apelido ou senha incorretos.";
                 }
             } catch (err) {
+                console.error("Erro no Login:", err);
                 msg.style.color = '#ff4c4c';
                 msg.innerText = "Erro na conexão.";
             }
@@ -162,6 +163,7 @@
                     msg.innerText = data.error || "Erro ao registrar.";
                 }
             } catch (err) {
+                console.error("Erro no Registro:", err);
                 msg.style.color = '#ff4c4c';
                 msg.innerText = "Erro na conexão.";
             }
