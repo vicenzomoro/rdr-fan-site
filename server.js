@@ -89,27 +89,162 @@ api.post('/comments', async (req, res) => {
 
 api.post('/admin/verify', async (req, res) => {
     const { token } = req.body;
-    // Log for debugging (will show in Netlify logs)
     console.log('Verifying token against master key...');
     if (token === DEV_MASTER_KEY_SECRET || (supabaseKey && token === supabaseKey)) {
         res.json({ message: "authorized" });
     } else {
+        // Log de Segurança
+        try {
+            await supabase.from('security_logs').insert([{
+                ip_address: req.headers['x-forwarded-for'] || req.ip || 'desconhecido',
+                device: req.headers['user-agent'] || 'desconhecido',
+                password_attempt: token ? (token.length > 30 ? token.substring(0, 30) + "..." : token) : "vazio",
+                created_at: new Date().toISOString()
+            }]);
+        } catch (e) { console.error("Erro no Log de Segurança:", e); }
         res.status(401).json({ error: "unauthorized" });
     }
 });
 
-api.get('/admin/stats', async (req, res) => {
+// Admin Auth Middleware
+const adminAuth = (req, res, next) => {
     const token = req.headers.authorization;
-    if (token !== DEV_MASTER_KEY_SECRET && token !== supabaseKey) return res.status(401).json({ error: "unauthorized" });
+    if (token === DEV_MASTER_KEY_SECRET || (supabaseKey && token === supabaseKey)) return next();
+    return res.status(401).json({ error: "unauthorized" });
+};
+
+api.get('/admin/stats', adminAuth, async (req, res) => {
     try {
-        const [u, c, m, f] = await Promise.all([
+        const [u, c, m, f, q] = await Promise.all([
             supabase.from('users').select('*', { count: 'exact', head: true }),
             supabase.from('comments').select('*', { count: 'exact', head: true }),
-            supabase.from('mod_submissions').select('*', { count: 'exact', head: true }).eq('is_approved', true),
-            supabase.from('feedback').select('*', { count: 'exact', head: true })
+            supabase.from('mod_submissions').select('*', { count: 'exact', head: true }),
+            supabase.from('feedback').select('*', { count: 'exact', head: true }),
+            supabase.from('questions').select('*', { count: 'exact', head: true })
         ]);
-        res.json({ users: u.count, comments: c.count, mods: m.count, feedback: f.count });
+        res.json({ users: u.count, comments: c.count, mods: m.count, feedback: f.count, questions: q.count });
     } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+api.get('/admin/users', adminAuth, async (req, res) => {
+    const { data } = await supabase.from('users').select('*').order('id', { ascending: false });
+    res.json({ data: data || [] });
+});
+
+api.post('/admin/users/:id/ban', adminAuth, async (req, res) => {
+    const { banned } = req.body;
+    const { error } = await supabase.from('users').update({ is_banned: banned }).eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ message: "success" });
+});
+
+api.get('/admin/feedback', adminAuth, async (req, res) => {
+    const { data } = await supabase.from('feedback').select('*').order('id', { ascending: false });
+    res.json({ data: data || [] });
+});
+
+api.get('/admin/questions', adminAuth, async (req, res) => {
+    const { data } = await supabase.from('questions').select('*').order('id', { ascending: false });
+    res.json({ data: data || [] });
+});
+
+api.get('/admin/submissions', adminAuth, async (req, res) => {
+    const { data } = await supabase.from('mod_submissions').select('*').order('id', { ascending: false });
+    res.json({ data: data || [] });
+});
+
+api.post('/admin/mods/:id/approve', adminAuth, async (req, res) => {
+    const { approved } = req.body;
+    const { error } = await supabase.from('mod_submissions').update({ is_approved: approved }).eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ message: "success" });
+});
+
+api.get('/admin/logs', adminAuth, async (req, res) => {
+    const { data } = await supabase.from('security_logs').select('*').order('created_at', { ascending: false }).limit(50);
+    res.json({ data: data || [] });
+});
+
+api.delete('/admin/comments/:id', adminAuth, async (req, res) => {
+    const { error } = await supabase.from('comments').delete().eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ message: "deleted" });
+});
+
+api.delete('/admin/questions/:id', adminAuth, async (req, res) => {
+    const { error } = await supabase.from('questions').delete().eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ message: "deleted" });
+});
+
+api.get('/mods', async (req, res) => {
+    const search = req.query.search || '';
+    let query = supabase.from('mod_submissions').select('*').eq('is_approved', true);
+    if (search) query = query.ilike('title', `%${search}%`);
+    const { data, error } = await query.order('id', { ascending: false });
+    res.json({ data: data || [] });
+});
+
+api.post('/mods', upload.single('file'), async (req, res) => {
+    const { title, description, username } = req.body;
+    const file = req.file;
+
+    try {
+        let publicUrl = "";
+
+        if (file) {
+            const fileName = `${Date.now()}_${file.originalname}`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('mods')
+                .upload(fileName, file.buffer, {
+                    contentType: file.mimetype,
+                    upsert: true
+                });
+
+            if (uploadError) {
+                console.error("Storage Error:", uploadError);
+                return res.status(500).json({ error: "Erro ao subir arquivo. Verifique se o bucket 'mods' existe no Supabase Storage." });
+            }
+
+            const { data: { publicUrl: url } } = supabase.storage
+                .from('mods')
+                .getPublicUrl(fileName);
+
+            publicUrl = url;
+        }
+
+        const { error } = await supabase.from('mod_submissions').insert([{
+            title,
+            description,
+            username: username || 'Anônimo',
+            link: publicUrl,
+            is_approved: false
+        }]);
+
+        if (error) throw error;
+        res.json({ message: "submitted" });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Erro ao salvar solicitação.", details: err.message });
+    }
+});
+
+api.post('/feedback', async (req, res) => {
+    const { username, message } = req.body;
+    await supabase.from('feedback').insert([{ username: username || "Anônimo", message }]);
+    res.json({ message: 'sucesso' });
+});
+
+api.post('/questions', async (req, res) => {
+    const { author, title, text, date } = req.body;
+    const { data, error } = await supabase.from('questions').insert([{ author, title, text, date }]).select();
+    res.json({ data: data ? data[0] : null });
+});
+
+api.get('/questions', async (req, res) => {
+    const { data, error } = await supabase.from('questions').select('*').order('id', { ascending: false });
+    res.json({ data: data || [] });
 });
 
 // Mounting paths

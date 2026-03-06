@@ -240,6 +240,61 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (modsGallery) fetchMods();
 
+    // === Mod Submission ===
+    const modForm = document.getElementById("mod-form");
+    if (modForm) {
+        modForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const title = document.getElementById('mod-title').value.trim();
+            const description = document.getElementById('mod-description').value.trim();
+            const fileInput = document.getElementById('mod-file');
+            const status = document.getElementById('mod-status');
+
+            if (!title || !fileInput.files[0]) return;
+
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Enviando... Aguarde o Xerife...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('username', currentUser || "Anônimo");
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const res = await fetch('/api/mods', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    modForm.reset();
+                    status.innerText = "Mod enviado para o escritório do Xerife! Aguarde aprovação.";
+                    status.style.color = "#28a745";
+                    status.style.display = "block";
+                } else {
+                    status.innerText = "Erro: " + (result.error || "Tente novamente.");
+                    status.style.color = "var(--primary-red)";
+                    status.style.display = "block";
+                }
+            } catch (err) {
+                console.error(err);
+                status.innerText = "O telégrafo falhou. Verifique sua conexão.";
+                status.style.color = "var(--primary-red)";
+                status.style.display = "block";
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                setTimeout(() => { status.style.display = "none"; }, 5000);
+            }
+        });
+    }
+
     // === Feedback System ===
     const feedbackForm = document.getElementById("feedback-form");
     if (feedbackForm) {

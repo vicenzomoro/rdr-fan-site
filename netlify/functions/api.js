@@ -3,6 +3,8 @@ const serverless = require('serverless-http');
 const { createClient } = require('@supabase/supabase-js');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 app.use(cors());
@@ -118,6 +120,51 @@ app.post('/feedback', async (req, res) => {
     const { username, message } = req.body;
     await supabase.from('feedback').insert([{ username: username || 'Anônimo', message }]);
     res.json({ message: 'sucesso' });
+});
+
+app.post('/mods', upload.single('file'), async (req, res) => {
+    const { title, description, username } = req.body;
+    const file = req.file;
+
+    try {
+        let publicUrl = "";
+
+        if (file) {
+            const fileName = `${Date.now()}_${file.originalname}`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('mods')
+                .upload(fileName, file.buffer, {
+                    contentType: file.mimetype,
+                    upsert: true
+                });
+
+            if (uploadError) {
+                console.error("Storage Error:", uploadError);
+                return res.status(500).json({ error: "Erro ao subir arquivo. Verifique se o bucket 'mods' existe no Supabase Storage." });
+            }
+
+            const { data: { publicUrl: url } } = supabase.storage
+                .from('mods')
+                .getPublicUrl(fileName);
+
+            publicUrl = url;
+        }
+
+        const { error } = await supabase.from('mod_submissions').insert([{
+            title,
+            description,
+            username: username || 'Anônimo',
+            link: publicUrl,
+            is_approved: false
+        }]);
+
+        if (error) throw error;
+        res.json({ message: "submitted" });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Erro ao salvar solicitação.", details: err.message });
+    }
 });
 
 // --- ROTAS ADMIN ---

@@ -2,6 +2,8 @@ const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 app.use(cors());
@@ -95,6 +97,53 @@ app.post('/api/feedback', async (req, res) => {
     const { username, message } = req.body;
     await supabase.from('feedback').insert([{ username: username || "Anônimo", message }]);
     res.json({ message: 'sucesso' });
+});
+
+app.post('/api/mods', upload.single('file'), async (req, res) => {
+    const { title, description, username } = req.body;
+    const file = req.file;
+
+    try {
+        let publicUrl = "https://www.nexusmods.com"; // Fallback ou se não tiver arquivo
+
+        if (file) {
+            const fileName = `${Date.now()}_${file.originalname}`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('mods')
+                .upload(fileName, file.buffer, {
+                    contentType: file.mimetype,
+                    upsert: true
+                });
+
+            if (uploadError) {
+                console.error("Storage Error:", uploadError);
+                // Se o bucket não existe, vamos avisar mas continuar sem o arquivo se quiserem
+                // Ou apenas falhar para o usuário criar o bucket
+                return res.status(500).json({ error: "Erro ao subir arquivo. O Xerife precisa de um balde (Storage Bucket) chamado 'mods'." });
+            }
+
+            const { data: { publicUrl: url } } = supabase.storage
+                .from('mods')
+                .getPublicUrl(fileName);
+
+            publicUrl = url;
+        }
+
+        const { error } = await supabase.from('mod_submissions').insert([{
+            title,
+            description,
+            username,
+            link: publicUrl,
+            is_approved: false
+        }]);
+
+        if (error) throw error;
+        res.json({ message: "submitted" });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Erro ao salvar solicitação.", details: err.message });
+    }
 });
 
 // --- ROTAS ADMIN ---
