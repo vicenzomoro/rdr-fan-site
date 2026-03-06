@@ -126,7 +126,9 @@
                     window.location.href = 'index.html#comments';
                 } else {
                     msg.style.color = '#ff4c4c';
-                    msg.innerText = data.error || "Apelido ou senha incorretos.";
+                    let fullError = data.error || "Apelido ou senha incorretos.";
+                    if (data.details) fullError += " | " + data.details;
+                    msg.innerText = fullError;
                 }
             } catch (err) {
                 console.error("Erro no Login:", err);
@@ -160,7 +162,10 @@
                     setTimeout(() => toggleView('login'), 1500);
                 } else {
                     msg.style.color = '#ff4c4c';
-                    msg.innerText = data.error || "Erro ao registrar.";
+                    let fullError = data.error || "Erro ao registrar.";
+                    if (data.details) fullError += " | Detalhes: " + data.details;
+                    if (data.hint) fullError += " | Dica: " + data.hint;
+                    msg.innerText = fullError;
                 }
             } catch (err) {
                 console.error("Erro no Registro:", err);
