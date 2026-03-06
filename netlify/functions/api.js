@@ -16,14 +16,19 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // Senha Mestra do Admin
 const MASTER_KEY = process.env.DEV_MASTER_KEY || "DEV_XERIFE_1899";
 
-// Roteador de API
+// Roteador de API (Suporte a múltiplos prefixos para garantir que funcione no Netlify)
 const router = express.Router();
 
+// Função para registrar rotas em vários formatos
+const registerRoute = (method, paths, handler) => {
+    paths.forEach(p => router[method](p, handler));
+};
+
 // Teste de Conexão (Ping)
-router.get('/ping', (req, res) => res.json({ message: "O servidor está vivo!", status: "ok" }));
+registerRoute('get', ['/ping', '/api/ping'], (req, res) => res.json({ message: "O servidor está vivo!", status: "ok" }));
 
 // Registro
-router.post('/auth/register', async (req, res) => {
+registerRoute('post', ['/auth/register', '/api/auth/register'], async (req, res) => {
     const { username, password } = req.body;
     try {
         const hashed = await bcrypt.hash(password, 10);
@@ -34,7 +39,7 @@ router.post('/auth/register', async (req, res) => {
 });
 
 // Login
-router.post('/auth/login', async (req, res) => {
+registerRoute('post', ['/auth/login', '/api/auth/login'], async (req, res) => {
     const { username, password } = req.body;
     try {
         const { data, error } = await supabase.from('users').select('*').eq('username', username);
@@ -49,7 +54,7 @@ router.post('/auth/login', async (req, res) => {
 });
 
 // Admin Verify
-router.post('/admin/verify', (req, res) => {
+registerRoute('post', ['/admin/verify', '/api/admin/verify'], (req, res) => {
     const { token } = req.body;
     if (token === MASTER_KEY || token === supabaseKey) {
         res.json({ message: "authorized" });
@@ -59,7 +64,7 @@ router.post('/admin/verify', (req, res) => {
 });
 
 // Comentários
-router.get('/comments', async (req, res) => {
+registerRoute('get', ['/comments', '/api/comments'], async (req, res) => {
     try {
         const { data, error } = await supabase.from('comments').select('*').order('id', { ascending: false });
         if (error) throw error;
@@ -67,7 +72,7 @@ router.get('/comments', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post('/comments', async (req, res) => {
+registerRoute('post', ['/comments', '/api/comments'], async (req, res) => {
     const { author, text, date } = req.body;
     try {
         const { data, error } = await supabase.from('comments').insert([{ author, text, date }]).select();
@@ -76,10 +81,7 @@ router.post('/comments', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Acoplar o roteador de forma resiliente
-// Isso garante que funcione tanto no Netlify quanto localmente, não importa o prefixo
-app.use('/.netlify/functions/api', router);
-app.use('/api', router);
-app.use('/', router); // Fallback para garantir que o roteador pegue a requisição
+// Acoplar o roteador na raiz (O Netlify Functions cuida do resto)
+app.use('/', router);
 
 module.exports.handler = serverless(app);
