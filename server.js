@@ -17,9 +17,10 @@ app.set('trust proxy', true);
 app.use(cors());
 app.use(express.json());
 
-// Secrets check
+// Secrets check (Netlify Extension Support)
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+// Tenta pegar a Service Role Key (mais comum na extensão) ou a Anon Key
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
 const DEV_MASTER_KEY_SECRET = process.env.DEV_MASTER_KEY || "DEV_XERIFE_1899";
 const GEN_API_KEY = process.env.GEN_API_KEY || "";
 
