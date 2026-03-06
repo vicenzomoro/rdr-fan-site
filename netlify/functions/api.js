@@ -8,37 +8,41 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Log de Inicialização
-console.log("--- INICIANDO BACKEND RDR FAN SITE ---");
-
-// Configurações do Supabase
-// A extensão do Netlify injeta essas variáveis automaticamente
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '';
+// Limpeza e Captura de Variáveis (Trim remove espaços invisíveis)
+const supabaseUrl = (process.env.SUPABASE_URL || '').trim();
+const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
 
 if (!supabaseUrl || !supabaseKey) {
-    console.error("ERRO: Credenciais do Supabase não encontradas no ambiente do Netlify!");
+    console.error("ERRO: Variáveis do Supabase vazias no Netlify!");
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-const MASTER_KEY = process.env.DEV_MASTER_KEY || "DEV_XERIFE_1899";
+// Inicialização com motor de fetch global (Mais estável no Node 18+)
+const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false }
+});
 
-// Middleware para normalizar caminhos do Netlify
+const MASTER_KEY = (process.env.DEV_MASTER_KEY || "DEV_XERIFE_1899").trim();
+
+// Normalização de Caminhos
 app.use((req, res, next) => {
-    // Remove prefixos comuns do Netlify para que o roteamento interno funcione
-    const cleanUrl = req.url.replace('/.netlify/functions/api', '').replace('/api', '') || '/';
-    req.url = cleanUrl;
-    console.log(`[REQ] ${req.method} ${req.url}`);
+    req.url = req.url.replace('/.netlify/functions/api', '').replace('/api', '') || '/';
     next();
 });
 
-// --- ROTA DE SAÚDE (Diagnóstico) ---
-app.get('/health', (req, res) => {
+// --- NOVO HEALTH CHECK (Teste Real) ---
+app.get('/health', async (req, res) => {
+    let db_status = "não testado";
+    try {
+        const { error } = await supabase.from('users').select('id').limit(1);
+        db_status = error ? `Erro: ${error.message}` : "Conectado com Sucesso!";
+    } catch (e) {
+        db_status = `Falha Catastrófica: ${e.message}`;
+    }
+
     res.json({
         status: "alive",
-        supabase_url_ok: supabaseUrl.startsWith('http'),
-        supabase_key_ok: supabaseKey.length > 20,
-        node_version: process.version,
+        database_connection: db_status,
+        url_preview: supabaseUrl.substring(0, 15) + "...",
         timestamp: new Date().toISOString()
     });
 });
@@ -53,19 +57,21 @@ app.post('/auth/register', async (req, res) => {
         if (!username || !password) return res.status(400).json({ error: "Faltam dados." });
 
         const hashed = await bcrypt.hash(password, 10);
-        const { error } = await supabase.from('users').insert([{ username, password: hashed, is_banned: false }]);
+        const { error } = await supabase.from('users').insert([{
+            username: String(username).trim(),
+            password: hashed,
+            is_banned: false
+        }]);
 
         if (error) {
-            console.error("Erro Supabase (Insert):", error);
             return res.status(400).json({
                 error: "Erro no Banco de Dados",
                 details: error.message,
-                hint: "Verifique se a tabela 'users' existe no painel do Supabase."
+                code: error.code
             });
         }
         res.json({ message: "registered" });
     } catch (err) {
-        console.error("Erro Fatal (Register):", err);
         res.status(500).json({ error: "Erro interno", details: err.message });
     }
 });
@@ -73,42 +79,20 @@ app.post('/auth/register', async (req, res) => {
 app.post('/auth/login', async (req, res) => {
     const { username, password } = req.body;
     try {
-        const { data, error } = await supabase.from('users').select('*').eq('username', username);
+        const { data, error } = await supabase.from('users').select('*').eq('username', String(username).trim());
         if (error) throw error;
 
         if (data && data.length > 0) {
             const user = data[0];
             const match = await bcrypt.compare(password, user.password);
             if (!match) return res.status(401).json({ error: 'Senha incorreta.' });
-            res.json({ message: "logged_in", username });
+            res.json({ message: "logged_in", username: user.username });
         } else {
             res.status(401).json({ error: 'Usuário não encontrado.' });
         }
     } catch (err) {
         res.status(500).json({ error: "Erro no servidor", details: err.message });
     }
-});
-
-// --- ADMIN ---
-app.post('/admin/verify', (req, res) => {
-    const { token } = req.body;
-    if (token === MASTER_KEY || token === supabaseKey) {
-        res.json({ message: "authorized" });
-    } else {
-        res.status(401).json({ error: "unauthorized" });
-    }
-});
-
-// --- DADOS ---
-app.get('/comments', async (req, res) => {
-    const { data, error } = await supabase.from('comments').select('*').order('id', { ascending: false });
-    res.json({ data: data || [] });
-});
-
-app.post('/comments', async (req, res) => {
-    const { author, text, date } = req.body;
-    const { data, error } = await supabase.from('comments').insert([{ author, text, date }]).select();
-    res.json({ data: data ? data[0] : null });
 });
 
 module.exports.handler = serverless(app);
