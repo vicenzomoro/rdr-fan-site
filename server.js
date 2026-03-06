@@ -44,22 +44,17 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', true);
 
 // Supabase Connection
-const supabaseUrl = process.env.SUPABASE_URL || 'https://utgvmwqtioghilavuceo.supabase.co';
-const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_hwHJAWfiOu82lxdweW4TQQ_KTvicO2-';
-if (!process.env.SUPABASE_KEY) {
-    console.warn('Warning: SUPABASE_KEY environment variable not set, using default publishable key. This may be insecure.');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+// (supabaseUrl and supabaseKey are defined at the top)
+const supabase = createClient(supabaseUrl || '', supabaseKey || '');
 
 // Middleware
 app.use(cors({
-    origin: '*', // Permite que o frontend acesse de qualquer lugar (útil se usar Netlify + Render)
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname))); // Garante que caminhos estáticos funcionem no Linux/Windows
+app.use(express.static(path.join(__dirname)));
 
 // Home Route
 app.get('/', (req, res) => {
