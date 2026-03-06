@@ -45,9 +45,18 @@ if (!process.env.SUPABASE_KEY) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: '*', // Permite que o frontend acesse de qualquer lugar (útil se usar Netlify + Render)
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname))); // Garante que caminhos estáticos funcionem no Linux/Windows
+
+// Home Route
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // API Routes
 app.post('/api/auth/register', async (req, res) => {
