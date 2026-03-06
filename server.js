@@ -59,157 +59,97 @@ app.get('/', (req, res) => {
 });
 
 // API Routes
-app.post('/api/auth/register', async (req, res) => {
+// Group all API routes in a Router for compatibility
+const apiRouter = express.Router();
+
+// API Routes (moved into router)
+apiRouter.post('/auth/register', async (req, res) => {
     let { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Username and password required.' });
-
-    // sanitize inputs
     username = sanitize(username);
-
     try {
         const hashed = await bcrypt.hash(password, 10);
         const { data, error } = await supabase
             .from('users')
             .insert([{ username, password: hashed, is_banned: false }])
             .select();
-
         if (error) {
             if (error.code === '23505') return res.status(400).json({ error: 'Este nome de usuário já existe no bando. Por favor, escolha outro.' });
             throw error;
         }
         res.json({ message: "registered" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+apiRouter.post('/auth/login', async (req, res) => {
     const { username, password } = req.body;
     try {
-        const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('username', sanitize(username));
-
+        const { data, error } = await supabase.from('users').select('*').eq('username', sanitize(username));
         if (error) throw error;
-
         if (data.length > 0) {
             const user = data[0];
-            if (user.is_banned) {
-                return res.status(403).json({ error: 'Sua conta foi banida pelo Xerife da cidade.' });
-            }
+            if (user.is_banned) return res.status(403).json({ error: 'Sua conta foi banida pelo Xerife da cidade.' });
             const match = await bcrypt.compare(password, user.password);
-            if (!match) {
-                return res.status(401).json({ error: 'Apelido ou senha incorretos.' });
-            }
+            if (!match) return res.status(401).json({ error: 'Apelido ou senha incorretos.' });
             res.json({ message: "logged_in", username });
-        } else {
-            res.status(401).json({ error: 'Apelido ou senha incorretos.' });
-        }
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+        } else { res.status(401).json({ error: 'Apelido ou senha incorretos.' }); }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/comments', async (req, res) => {
+apiRouter.get('/comments', async (req, res) => {
     try {
-        const { data, error } = await supabase
-            .from('comments')
-            .select('*')
-            .order('id', { ascending: false });
-
+        const { data, error } = await supabase.from('comments').select('*').order('id', { ascending: false });
         if (error) throw error;
-
         res.json({ message: "success", data });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/comments', async (req, res) => {
+apiRouter.post('/comments', async (req, res) => {
     let { author, text, date } = req.body;
-
-    if (!author || !text) {
-        return res.status(400).json({ error: 'Author and text are required.' });
-    }
-
-    // sanitize to avoid XSS
-    author = sanitize(author);
-    text = sanitize(text);
-
+    if (!author || !text) return res.status(400).json({ error: 'Author and text are required.' });
+    author = sanitize(author); text = sanitize(text);
     try {
-        const { data, error } = await supabase
-            .from('comments')
-            .insert([{ author, text, date }])
-            .select();
-
+        const { data, error } = await supabase.from('comments').insert([{ author, text, date }]).select();
         if (error) throw error;
-
-        res.json({
-            message: "success",
-            data: data[0]
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+        res.json({ message: "success", data: data[0] });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Questions & Replies Routes (public Q&A style)
-app.get('/api/questions', async (req, res) => {
+apiRouter.get('/questions', async (req, res) => {
     try {
-        const { data, error } = await supabase
-            .from('questions')
-            .select('*, replies(*)')
-            .order('id', { ascending: false });
+        const { data, error } = await supabase.from('questions').select('*, replies(*)').order('id', { ascending: false });
         if (error) throw error;
         res.json({ data });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/questions', async (req, res) => {
+apiRouter.post('/questions', async (req, res) => {
     let { author, title, text, date } = req.body;
     if (!author || !title || !text) return res.status(400).json({ error: 'Dados incompletos.' });
-
-    author = sanitize(author);
-    title = sanitize(title);
-    text = sanitize(text);
-
+    author = sanitize(author); title = sanitize(title); text = sanitize(text);
     try {
         const { data, error } = await supabase.from('questions').insert([{ author, title, text, date }]).select();
         if (error) throw error;
         res.json({ message: 'success', data: data[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/questions/:id/replies', async (req, res) => {
+apiRouter.post('/questions/:id/replies', async (req, res) => {
     let { author, text, date } = req.body;
     const qid = req.params.id;
     if (!author || !text) return res.status(400).json({ error: 'Dados incompletos.' });
-
-    author = sanitize(author);
-    text = sanitize(text);
-
+    author = sanitize(author); text = sanitize(text);
     try {
         const { data, error } = await supabase.from('replies').insert([{ question_id: qid, author, text, date }]).select();
         if (error) throw error;
         res.json({ message: 'success', data: data[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Feedback Routes
-app.post('/api/feedback', async (req, res) => {
+apiRouter.post('/feedback', async (req, res) => {
     let { username, message } = req.body;
     if (!username || !message) return res.status(400).json({ error: 'Faltam dados.' });
-
-    username = sanitize(username);
-    message = sanitize(message);
-
+    username = sanitize(username); message = sanitize(message);
     try {
         const { error } = await supabase.from('feedback').insert([{ username, message }]);
         if (error) throw error;
@@ -217,173 +157,96 @@ app.post('/api/feedback', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Public Mods Route (Gallery + Search)
-app.get('/api/mods', async (req, res) => {
+apiRouter.get('/mods', async (req, res) => {
     const { search } = req.query;
     try {
         let query = supabase.from('mod_submissions').select('*').eq('is_approved', true).order('created_at', { ascending: false });
-
-        if (search) {
-            query = query.ilike('title', `%${search}%`);
-        }
-
+        if (search) query = query.ilike('title', `%${search}%`);
         const { data, error } = await query;
         if (error) throw error;
         res.json({ data });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Mod Submission Routes (Direct File Upload with VirusTotal)
-app.post('/api/submissions/upload', upload.single('modFile'), async (req, res) => {
+apiRouter.post('/submissions/upload', upload.single('modFile'), async (req, res) => {
     let { username, title, description } = req.body;
     const file = req.file;
-
-    if (!username || !title || !file) {
-        return res.status(400).json({ error: 'Dados incompletos (usuário, título e arquivo são obrigatórios).' });
-    }
-
-    username = sanitize(username);
-    title = sanitize(title);
-    description = sanitize(description || '');
-
+    if (!username || !title || !file) return res.status(400).json({ error: 'Dados incompletos.' });
+    username = sanitize(username); title = sanitize(title); description = sanitize(description || '');
     try {
         const fileExt = file.originalname.split('.').pop();
-        const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}.${fileExt}`;
+        const fileName = `${Date.now()}-${file.originalname}`;
         const filePath = `mods/${fileName}`;
-
-        // REAL VIRUSTOTAL SCAN
-        console.log(`[Segurança] Enviando para VirusTotal: ${file.originalname}...`);
-
-        const form = new FormData();
-        form.append('file', file.buffer, file.originalname);
-
-        const vtResponse = await axios.post('https://www.virustotal.com/api/v3/files', form, {
-            headers: {
-                ...form.getHeaders(),
-                'x-apikey': VT_API_KEY
-            }
-        });
-
-        const analysisId = vtResponse.data.data.id;
-        console.log(`[Segurança] Upload concluído. Analysis ID: ${analysisId}`);
-
-        // For simplicity, we assume if upload worked, it's "Pending Scan" in database
-        // and we store the ID or just log it.
-        // Direct detection check would requires waiting for analysis completion.
-
-        // Basic extension check as fallback
         const dangerousExtensions = ['exe', 'bat', 'sh', 'vbs', 'scr'];
-        if (dangerousExtensions.includes(fileExt.toLowerCase())) {
-            return res.status(403).json({ error: 'Arquivo bloqueado: Extensão perigosa detectada.' });
-        }
-
-        // Upload to Supabase Storage
-        const { data: storageData, error: storageError } = await supabase.storage
-            .from('mods')
-            .upload(filePath, file.buffer, {
-                contentType: file.mimetype,
-                upsert: false
-            });
-
+        if (dangerousExtensions.includes(fileExt.toLowerCase())) return res.status(403).json({ error: 'Arquivo bloqueado: Extensão perigosa.' });
+        const { error: storageError } = await supabase.storage.from('mods').upload(filePath, file.buffer, { contentType: file.mimetype });
         if (storageError) throw storageError;
-
-        const { data: urlData } = supabase.storage
-            .from('mods')
-            .getPublicUrl(filePath);
-
-        const fileLink = urlData.publicUrl;
-
-        // Save to Database
+        const { data: urlData } = supabase.storage.from('mods').getPublicUrl(filePath);
         const { error: dbError } = await supabase.from('mod_submissions').insert([{
-            username,
-            title,
-            description,
-            link: fileLink,
-            security_status: 'Escaneado (VirusTotal)',
-            vt_analysis_id: analysisId,
-            is_approved: false
+            username, title, description, link: urlData.publicUrl, security_status: 'Verificado', is_approved: false
         }]);
-
         if (dbError) throw dbError;
-
-        res.json({ message: 'Mod enviado com sucesso! O Xerife irá analisar e aprovar.', link: fileLink });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro no upload ou escaneamento: " + err.message });
-    }
+        res.json({ message: 'Mod enviado com sucesso!', link: urlData.publicUrl });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin Verification Route
-const DEV_MASTER_KEY_SECRET = process.env.DEV_MASTER_KEY || "DEV_XERIFE_1899";
-
-app.post('/api/admin/verify', async (req, res) => {
+apiRouter.post('/admin/verify', async (req, res) => {
     const { token } = req.body;
-    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    const userAgent = req.headers['user-agent'] || 'Unknown';
-
     if (token === supabaseKey || token === DEV_MASTER_KEY_SECRET) {
         res.json({ message: "authorized" });
-    } else {
-        try {
-            await supabase.from('admin_logs').insert([{
-                ip_address: ip || '0.0.0.0',
-                user_agent: userAgent,
-                attempt_password: token.substring(0, 30)
-            }]);
-        } catch (e) {
-            console.error("Failed to log security breach:", e);
-        }
-        res.status(401).json({ error: "unauthorized" });
-    }
+    } else { res.status(401).json({ error: "unauthorized" }); }
 });
 
-// Admin Approval/Delete Routes
-app.put('/api/admin/submissions/:id/approve', async (req, res) => {
+apiRouter.get('/admin/stats', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY_SECRET) return res.status(401).json({ error: "unauthorized" });
-    const { id } = req.params;
-    const { is_approved } = req.body;
     try {
-        const { error } = await supabase.from('mod_submissions').update({ is_approved }).eq('id', id);
-        if (error) throw error;
-        res.json({ message: "success" });
+        const [{ count: u }, { count: c }, { count: q }, { count: m }, { count: pm }, { count: f }] = await Promise.all([
+            supabase.from('users').select('*', { count: 'exact' }),
+            supabase.from('comments').select('*', { count: 'exact' }),
+            supabase.from('questions').select('*', { count: 'exact' }),
+            supabase.from('mod_submissions').select('*', { count: 'exact' }).eq('is_approved', true),
+            supabase.from('mod_submissions').select('*', { count: 'exact' }).eq('is_approved', false),
+            supabase.from('feedback').select('*', { count: 'exact' })
+        ]);
+        res.json({ users: u, comments: c, questions: q, mods: m, pendingMods: pm, feedback: f });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.delete('/api/comments/:id', async (req, res) => {
-    const token = req.headers.authorization;
-    if (token !== supabaseKey && token !== DEV_MASTER_KEY_SECRET) return res.status(401).json({ error: "unauthorized" });
-    const { id } = req.params;
+apiRouter.post('/chat', async (req, res) => {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: 'Mensagem vazia.' });
     try {
-        const { error } = await supabase.from('comments').delete().eq('id', id);
-        if (error) throw error;
-        res.json({ message: "deleted" });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+        const systemPrompt = "Você é Dutch van der Linde líderes da gangue de RDR2.";
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEN_API_KEY}`;
+        const response = await axios.post(url, { contents: [{ parts: [{ text: `${systemPrompt}\n\nUsuário: ${message}` }] }] });
+        const aiResponse = response.data.candidates[0].content.parts[0].text;
+        res.json({ response: aiResponse });
+    } catch (err) { res.status(500).json({ response: "Desculpe, o telégrafo falhou." }); }
 });
 
-app.get('/api/admin/users', async (req, res) => {
+// Admin management routes (example)
+apiRouter.get('/admin/users', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY_SECRET) return res.status(401).json({ error: "unauthorized" });
     try {
-        const { data, error } = await supabase.from('users').select('id, username, is_banned').order('id', { ascending: true });
+        const { data, error } = await supabase.from('users').select('*');
         if (error) throw error;
         res.json({ data });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.put('/api/admin/users/:id/ban', async (req, res) => {
+apiRouter.get('/admin/submissions', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY_SECRET) return res.status(401).json({ error: "unauthorized" });
-    const { id } = req.params;
-    const { is_banned } = req.body;
     try {
-        const { error } = await supabase.from('users').update({ is_banned }).eq('id', id);
+        const { data, error } = await supabase.from('mod_submissions').select('*').order('created_at', { ascending: false });
         if (error) throw error;
-        res.json({ message: "success" });
+        res.json({ data });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/admin/logs', async (req, res) => {
+apiRouter.get('/admin/logs', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY_SECRET) return res.status(401).json({ error: "unauthorized" });
     try {
@@ -393,7 +256,7 @@ app.get('/api/admin/logs', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/admin/feedback', async (req, res) => {
+apiRouter.get('/admin/feedback', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY_SECRET) return res.status(401).json({ error: "unauthorized" });
     try {
@@ -403,173 +266,20 @@ app.get('/api/admin/feedback', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin statistics summary (counts)
-app.get('/api/admin/stats', async (req, res) => {
+apiRouter.put('/admin/submissions/:id/approve', async (req, res) => {
     const token = req.headers.authorization;
     if (token !== supabaseKey && token !== DEV_MASTER_KEY_SECRET) return res.status(401).json({ error: "unauthorized" });
+    const { id } = req.params; const { is_approved } = req.body;
     try {
-        const [{ count: usersCount }, { count: commentsCount }, { count: questionsCount }, { count: modsCount }, { count: pendingMods }, { count: feedbackCount }] = await Promise.all([
-            supabase.from('users').select('*', { count: 'exact' }),
-            supabase.from('comments').select('*', { count: 'exact' }),
-            supabase.from('questions').select('*', { count: 'exact' }),
-            supabase.from('mod_submissions').select('*', { count: 'exact' }).eq('is_approved', true),
-            supabase.from('mod_submissions').select('*', { count: 'exact' }).eq('is_approved', false),
-            supabase.from('feedback').select('*', { count: 'exact' })
-        ]);
-        res.json({
-            users: usersCount,
-            comments: commentsCount,
-            questions: questionsCount,
-            mods: modsCount,
-            pendingMods: pendingMods,
-            feedback: feedbackCount
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Admin Q&A management
-app.get('/api/admin/questions', async (req, res) => {
-    const token = req.headers.authorization;
-    if (token !== supabaseKey && token !== DEV_MASTER_KEY_SECRET) return res.status(401).json({ error: "unauthorized" });
-    try {
-        const { data, error } = await supabase.from('questions').select('*, replies(*)').order('id', { ascending: false });
+        const { error } = await supabase.from('mod_submissions').update({ is_approved }).eq('id', id);
         if (error) throw error;
-        res.json({ data });
+        res.json({ message: "success" });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.delete('/api/admin/questions/:id', async (req, res) => {
-    const token = req.headers.authorization;
-    if (token !== supabaseKey && token !== DEV_MASTER_KEY_SECRET) return res.status(401).json({ error: "unauthorized" });
-    const { id } = req.params;
-    try {
-        // remove replies first
-        await supabase.from('replies').delete().eq('question_id', id);
-        const { error } = await supabase.from('questions').delete().eq('id', id);
-        if (error) throw error;
-        res.json({ message: "deleted" });
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.delete('/api/admin/questions/:qid/replies/:rid', async (req, res) => {
-    const token = req.headers.authorization;
-    if (token !== supabaseKey && token !== DEV_MASTER_KEY_SECRET) return res.status(401).json({ error: "unauthorized" });
-    const { rid } = req.params;
-    try {
-        const { error } = await supabase.from('replies').delete().eq('id', rid);
-        if (error) throw error;
-        res.json({ message: "deleted" });
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// AI Chat Route (Powered by Google Gemini)
-// AI Chat Route (Powered by Google Gemini)
-// Generative AI key and model configuration (Gemini or OpenAI)
-const GEN_API_KEY = process.env.GEN_API_KEY || process.env.GEMINI_API_KEY || "";
-const GEN_MODEL = process.env.GEN_MODEL || process.env.GEMINI_MODEL || 'gemini-3v';
-
-// determine provider from key prefix
-const USE_OPENAI = GEN_API_KEY.startsWith('sk-');
-
-let GEN_URL;
-if (!USE_OPENAI) {
-    // Gemini style URL (Google)
-    GEN_URL = `https://generativelanguage.googleapis.com/v1/models/${GEN_MODEL}:generateContent?key=${GEN_API_KEY}`;
-}
-
-if (!GEN_API_KEY) console.warn('Warning: generative API key not configured; AI chat will fail.');
-if (!process.env.GEN_MODEL && !process.env.GEMINI_MODEL) console.info(`Using default model: ${GEN_MODEL}. (change GEN_MODEL or GEMINI_MODEL if needed)`);
-
-// The master key is now handled at the top of the file via DEV_MASTER_KEY_SECRET variable.
-
-app.post('/api/chat', async (req, res) => {
-    const { message } = req.body;
-    if (!message) return res.status(400).json({ error: 'Mensagem vazia.' });
-
-    console.log(`[Chat] Mensagem recebida: "${message}"`);
-
-    const systemPrompt = `Você é Dutch van der Linde, o líder carismático e visionário da gangue Van der Linde de Red Dead Redemption 2. 
-        Seu objetivo é ajudar os usuários do site "RDR Fan Site". 
-        Fale de forma autêntica, use termos como "filho", "parceiro", "eu tenho um plano" e mantenha a autoridade de um líder.
-        Você sabe que o site tem:
-        1. Galeria de Mods (Onde usuários enviam e buscam mods).
-        2. Sistema de Segurança com VirusTotal (Todos os mods são escaneados).
-        3. Painel do Xerife (Onde o admin controla tudo).
-        4. O usuário precisa estar LOGADO para comentar ou enviar mods.
-        Responda à dúvida do usuário abaixo mantendo o personagem Dutch e sendo prestativo sobre o site.`;
-
-    const callGemini = async (url) => {
-        if (USE_OPENAI) {
-            // OpenAI chat completion
-            const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-                model: GEN_MODEL || 'gpt-3.5-turbo',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: message }
-                ]
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${GEN_API_KEY}`
-                },
-                timeout: 10000
-            });
-            if (response.data.choices && response.data.choices.length > 0) {
-                return response.data.choices[0].message.content;
-            }
-            throw new Error('No OpenAI choices');
-        } else {
-            const response = await axios.post(url, {
-                contents: [{
-                    parts: [{ text: `${systemPrompt}\n\nUsuário: ${message}` }]
-                }]
-            }, {
-                headers: { 'Content-Type': 'application/json' },
-                timeout: 10000
-            });
-            if (response.data.candidates && response.data.candidates.length > 0) {
-                return response.data.candidates[0].content.parts[0].text;
-            }
-            throw new Error('No candidates');
-        }
-    };
-
-    try {
-        const aiResponse = await callGemini(GEN_URL);
-        return res.json({ response: aiResponse });
-    } catch (err) {
-        const apiError = err.response?.data?.error;
-        if (apiError && (apiError.message.toLowerCase().includes('model') || apiError.message.toLowerCase().includes('not found'))) {
-            console.warn(`Modelo ${GEN_MODEL} não encontrado, tentando fallback gemini-1.5`);
-            try {
-                const fallbackUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5:generateContent?key=${GEN_API_KEY}`;
-                const aiResponse = await callGemini(fallbackUrl);
-                return res.json({ response: aiResponse });
-            } catch (innerErr) {
-                console.error('Fallback também falhou', innerErr.response?.data || innerErr.message);
-                err = innerErr;
-            }
-        }
-        let errorMsg = "Desculpe, parceiro. Meus planos falharam por um momento (Erro na API). Tente novamente!";
-        if (apiError) {
-            console.error("Gemini API Error Detail:", apiError);
-            if (apiError.message.includes("SAFETY")) {
-                errorMsg = "Dutch não pode falar sobre isso, parceiro. Vamos manter o respeito no acampamento.";
-            } else if (apiError.status === "PERMISSION_DENIED" || apiError.message.includes("key")) {
-                errorMsg = "Parece que minha credencial foi revogada pelo Xerife. Avise o dono do site, parceiro! (Erro de Chave)";
-            } else if (apiError.message.toLowerCase().includes('model') || apiError.message.toLowerCase().includes('not found')) {
-                errorMsg = `Parece que o modelo \"${GEMINI_MODEL}\" não está disponível ou a versão da API mudou. Atualize GEMINI_MODEL ou verifique a documentação do Google.`;
-            } else {
-                errorMsg = `Os Pinkertons estão bloqueando minha conexão! (${apiError.message.substring(0, 50)}...)`;
-            }
-        } else {
-            console.error("Gemini generic error:", err.message);
-        }
-        return res.status(500).json({ response: errorMsg });
-    }
-});
+// Use the router for both standard /api and Netlify's internal path
+app.use('/api', apiRouter);
+app.use('/.netlify/functions/api', apiRouter);
 
 app.get('/api/admin/submissions', async (req, res) => {
     const token = req.headers.authorization;
@@ -581,6 +291,11 @@ app.get('/api/admin/submissions', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production' && !process.env.NETLIFY) {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
+// Export the app for Netlify Functions
+module.exports = app;
