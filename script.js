@@ -240,6 +240,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (modsGallery) fetchMods();
 
+    // === Feedback System ===
+    const feedbackForm = document.getElementById("feedback-form");
+    if (feedbackForm) {
+        feedbackForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const message = document.getElementById('feedback-text').value.trim();
+            const status = document.getElementById('feedback-status');
+            if (!message) return;
+
+            try {
+                const res = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUser || "Anônimo", message })
+                });
+                if (res.ok) {
+                    feedbackForm.reset();
+                    status.innerText = "Feedback enviado com sucesso!";
+                    status.style.color = "#28a745";
+                    status.style.display = "block";
+                    setTimeout(() => status.style.display = "none", 3000);
+                }
+            } catch (err) { console.error(err); }
+        });
+    }
+
     // === AI Chat ===
     const chatToggle = document.getElementById("ai-chat-toggle");
     const chatWindow = document.getElementById("ai-chat-window");

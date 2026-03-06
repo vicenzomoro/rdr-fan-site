@@ -15,7 +15,11 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const MASTER_KEY = (process.env.DEV_MASTER_KEY || "DEV_XERIFE_1899").trim();
 
 // --- TESTE ---
-app.get('/api/ping', (req, res) => res.json({ message: "Servidor Ativo!", status: "ok" }));
+app.get('/api/ping', (req, res) => res.json({
+    message: "Servidor Ativo!",
+    supabase_url_ok: supabaseUrl.startsWith('https://'),
+    supabase_key_ok: supabaseKey.length > 50
+}));
 
 // --- AUTENTICAÇÃO ---
 app.post('/api/auth/register', async (req, res) => {
@@ -54,18 +58,64 @@ app.post('/api/comments', async (req, res) => {
     res.json({ data: data ? data[0] : null });
 });
 
-// --- MODS E PERGUNTAS ---
-app.get('/api/mods', async (req, res) => {
-    const { data, error } = await supabase.from('mod_submissions').select('*').eq('is_approved', true);
-    res.json({ data: data || [] });
-});
-
+// --- DÚVIDAS E FEEDBACK ---
 app.get('/api/questions', async (req, res) => {
     const { data, error } = await supabase.from('questions').select('*').order('id', { ascending: false });
     res.json({ data: data || [] });
 });
 
-// --- ADMIN ---
+app.post('/api/questions', async (req, res) => {
+    const { author, title, text, date } = req.body;
+    const { data, error } = await supabase.from('questions').insert([{ author, title, text, date }]).select();
+    res.json({ data: data ? data[0] : null });
+});
+
+app.get('/api/feedback', async (req, res) => {
+    const { data, error } = await supabase.from('feedback').select('*').order('id', { ascending: false });
+    res.json({ data: data || [] });
+});
+
+app.post('/api/feedback', async (req, res) => {
+    const { username, message } = req.body;
+    const { data, error } = await supabase.from('feedback').insert([{ username, message }]).select();
+    res.json({ data: data ? data[0] : null });
+});
+
+// --- MODS ---
+app.get('/api/mods', async (req, res) => {
+    const { data, error } = await supabase.from('mod_submissions').select('*').eq('is_approved', true);
+    res.json({ data: data || [] });
+});
+
+app.get('/api/admin/submissions', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== MASTER_KEY && token !== supabaseKey) return res.status(401).json({ error: "unauthorized" });
+    const { data, error } = await supabase.from('mod_submissions').select('*').order('id', { ascending: false });
+    res.json({ data: data || [] });
+});
+
+// --- ADMIN STATS ---
+app.get('/api/admin/stats', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== MASTER_KEY && token !== supabaseKey) return res.status(401).json({ error: "unauthorized" });
+    try {
+        const [u, c, m, f] = await Promise.all([
+            supabase.from('users').select('*', { count: 'exact', head: true }),
+            supabase.from('comments').select('*', { count: 'exact', head: true }),
+            supabase.from('mod_submissions').select('*', { count: 'exact', head: true }).eq('is_approved', true),
+            supabase.from('feedback').select('*', { count: 'exact', head: true })
+        ]);
+        res.json({ users: u.count, comments: c.count, mods: m.count, feedback: f.count });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/admin/users', async (req, res) => {
+    const token = req.headers.authorization;
+    if (token !== MASTER_KEY && token !== supabaseKey) return res.status(401).json({ error: "unauthorized" });
+    const { data, error } = await supabase.from('users').select('*').order('id', { ascending: false });
+    res.json({ data: data || [] });
+});
+
 app.post('/api/admin/verify', (req, res) => {
     const { token } = req.body;
     if (token === MASTER_KEY || token === supabaseKey) {
