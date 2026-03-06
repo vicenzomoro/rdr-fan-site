@@ -78,12 +78,16 @@
             display: grid;
             grid-template-columns: 280px 1fr;
             min-height: 100vh;
+            width: 100%;
         }
 
         .sidebar {
             background: var(--admin-sidebar);
             padding: 30px 20px;
             border-right: 1px solid var(--admin-border);
+            height: 100vh;
+            position: sticky;
+            top: 0;
         }
 
         .sidebar-header {
@@ -129,9 +133,8 @@
 
         .content-area {
             padding: 40px;
-            max-width: 1200px;
-            margin: 0 auto;
             width: 100%;
+            box-sizing: border-box;
         }
 
         .top-stats {
@@ -169,13 +172,20 @@
         }
 
         /* Professional Tables */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            background: var(--admin-card);
+            border-radius: 15px;
+            border: 1px solid var(--admin-border);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            background: var(--admin-card);
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            min-width: 800px;
+            /* Previne o esmagamento das colunas */
         }
 
         .data-table th {
@@ -360,17 +370,19 @@
             <!-- USERS TAB -->
             <div id="tab-users" class="tab-content">
                 <h2 style="margin-bottom: 25px;">Gerenciar Cidadãos</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Username</th>
-                            <th>Status</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-users"></tbody>
-                </table>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-users"></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- COMMENTS TAB -->
@@ -388,48 +400,54 @@
             <!-- MODS TAB -->
             <div id="tab-mods" class="tab-content">
                 <h2 style="margin-bottom: 25px;">Aprovação de Conteúdo</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Título</th>
-                            <th>Autor</th>
-                            <th>Status</th>
-                            <th>Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-mods"></tbody>
-                </table>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Autor</th>
+                                <th>Status</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-mods"></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- FEEDBACK TAB -->
             <div id="tab-feedback" class="tab-content">
                 <h2 style="margin-bottom: 25px;">Sugestões do Bando</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Usuário</th>
-                            <th>Mensagem</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-feedback"></tbody>
-                </table>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Usuário</th>
+                                <th>Mensagem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-feedback"></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- SECURITY TAB -->
             <div id="tab-security" class="tab-content">
                 <h2 style="margin-bottom: 25px;">Monitoramento do Xerife</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Data/Hora</th>
-                            <th>IP</th>
-                            <th>Input Tentado</th>
-                            <th>Dispositivo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-logs"></tbody>
-                </table>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>IP</th>
+                                <th>Input Tentado</th>
+                                <th>Dispositivo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-logs"></tbody>
+                    </table>
+                </div>
             </div>
         </main>
     </div>
