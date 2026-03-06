@@ -6,9 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Saga Red Dead Redemption - Fan Site</title>
     <meta name="description" content="Tudo sobre a saga de jogos Red Dead Redemption. Um tributo aos fãs.">
-    <link href="https://fonts.googleapis.com/css2?family=Rye&family=Roboto:wght@300;400;700&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css?v=3">
 </head>
 
 <body>
@@ -18,209 +16,194 @@
             <a href="#hero">Início</a>
             <a href="#saga">A Saga</a>
             <a href="#mods">Mods</a>
-            <a href="#uploads">Upload Mods</a>
+            <a href="#uploads">Envie</a>
             <a href="#downloads">Save 100%</a>
             <a href="#feedback">Feedback</a>
             <a href="#duvidas">Dúvidas</a>
-            <a href="#comments">Comentários</a>
-            <a href="login.html" id="nav-login-btn">Entrar / Registrar</a>
+            <a href="#comments">Relatos</a>
+            <a href="login.html" id="nav-login-btn" class="btn btn-outline"
+                style="padding: 8px 15px; margin-left:15px;">Entrar</a>
         </nav>
-        <div class="external-logos" style="display:flex; gap:10px; align-items:center; margin-left:20px;">
-            <a href="https://www.nexusmods.com" target="_blank"><img src="nexus-logo.png" alt="Nexus Mods" style="height:30px;"></a>
-            <a href="https://www.rdr2mods.com/" target="_blank"><img src="rdrmods-logo.png" alt="RDR2 Mods" style="height:30px;"></a>
+        <div class="external-logos" style="display:flex; gap:15px; align-items:center; margin-left:20px;">
+            <a href="https://www.nexusmods.com" target="_blank"><img src="nexus-logo.png" alt="Nexus Mods"
+                    style="height:25px; opacity:0.7; transition:0.3s;" onmouseover="this.style.opacity=1"
+                    onmouseout="this.style.opacity=0.7"></a>
+            <a href="https://www.rdr2mods.com/" target="_blank"><img src="rdrmods-logo.png" alt="RDR2 Mods"
+                    style="height:25px; opacity:0.7; transition:0.3s;" onmouseover="this.style.opacity=1"
+                    onmouseout="this.style.opacity=0.7"></a>
+        </div>
     </header>
 
     <main>
         <section id="hero" class="hero-section">
             <div class="hero-overlay"></div>
             <div class="hero-content">
-                <h1 class="animate-title">Red Dead Redemption</h1>
-                <p class="animate-subtitle">Uma saga de honra, vingança e o fim de uma era no Velho Oeste.</p>
-                <a href="#saga" class="cta-button">Explorar a Saga</a>
+                <h1 class="hero-title">Red Dead Redemption</h1>
+                <p class="hero-subtitle">Uma jornada de honra, vingança e o fim de uma era no Coração do Oeste.</p>
+                <div style="display: flex; gap: 20px; justify-content: center;">
+                    <a href="#saga" class="btn btn-primary">Explorar a Saga</a>
+                    <a href="#mods" class="btn btn-outline">Galeria de Mods</a>
+                </div>
             </div>
         </section>
 
-        <section id="saga" class="saga-section reveal">
-            <h2 class="section-title">A Jornada pelo Velho Oeste</h2>
-
-            <p class="reveal" style="max-width:800px; margin:0 auto 40px; color: var(--text-muted);">
-                A saga Red Dead acompanha décadas de aventura, violência, honra e traição no coração do Oeste americano. <br>
-                Começando em 2004 com um título mais arcade e culminando num épico narrativo em 2018, cada capítulo trouxe
-                personagens inesquecíveis, cenários vibrantes e críticas sociais afiadas.
+        <section id="saga" class="reveal">
+            <h2 class="section-title">A Epopeia do Velho Oeste</h2>
+            <p
+                style="max-width:800px; text-align:center; margin:0 auto 60px; color: var(--text-muted); font-size: 1.1rem;">
+                Acompanhe décadas de aventura, violência e honra. Cada capítulo da saga Red Dead trouxe personagens
+                inesquecíveis e críticas sociais que marcaram a história dos jogos.
             </p>
 
-            <div class="card reveal">
-                <div class="card-content">
+            <div class="grid">
+                <div class="card">
                     <h3>Red Dead Revolver (2004)</h3>
-                    <p>O início de tudo. Acompanhe a história de vingança de Red Harlow, um caçador de recompensas
-                        implacável em busca de justiça no implacável Velho Oeste. Embora com um tom mais arcade, esse
-                        jogo estabeleceu as bases de tiro e duelo para a franquia.</p>
+                    <p>A história de vingança de Red Harlow, um caçador de recompensas implacável. O título que
+                        estabeleceu as bases da franquia com duelos icônicos.</p>
                 </div>
-            </div>
-
-            <div class="card reveal">
-                <div class="card-content">
+                <div class="card">
                     <h3>Red Dead Redemption (2010)</h3>
-                    <p>Uma obra-prima atemporal. John Marston, um ex-fora da lei, é forçado a caçar seus antigos
-                        companheiros de gangue para salvar sua família. Uma narrativa profunda sobre redenção, o fim de
-                        uma era e o inevitável avanço da civilização moderna.</p>
+                    <p>John Marston é forçado a caçar seus antigos companheiros. Uma obra-prima sobre redenção e a
+                        inevitável chegada da civilização moderna.</p>
                 </div>
-            </div>
-
-            <div class="card reveal">
-                <div class="card-content">
+                <div class="card">
                     <h3>Red Dead Redemption 2 (2018)</h3>
-                    <p>O épico prólogo. Vivencie a história pela perspectiva de Arthur Morgan, o leal braço direito da
-                        gangue de Dutch van der Linde. Um mundo incrivelmente detalhado e imersivo, onde cada escolha
-                        tem peso, e a lealdade é testada em um mundo que não os quer mais.</p>
+                    <p>Arthur Morgan e a gangue Van der Linde tentam sobreviver em um mundo que não os quer mais. O
+                        ápice da imersão e narrativa da Rockstar.</p>
                 </div>
             </div>
         </section>
 
-        <section id="mods" class="mods-section reveal">
-            <h2 class="section-title">Galeria de Mods do Bando</h2>
+        <section id="mods" class="reveal" style="background: var(--bg-surface);">
+            <h2 class="section-title">Acervo de Modificações</h2>
 
-            <!-- Nexus-like Menu -->
             <div class="mods-nav">
                 <button class="mod-nav-btn active" onclick="filterMods('all')">Todos</button>
                 <button class="mod-nav-btn" onclick="filterMods('recent')">Recentes</button>
                 <button class="mod-nav-btn" onclick="filterMods('popular')">Populares</button>
             </div>
 
-            <!-- Search Bar -->
             <div class="search-container">
-                <input type="text" id="mod-search"
-                    placeholder="Pesquisar mods da gangue... (ex: Arthur, Textura, Reali)" oninput="handleSearch()">
+                <input type="text" id="mod-search" placeholder="Pesquisar mods da gangue..." oninput="handleSearch()">
                 <span class="search-icon">🔍</span>
             </div>
 
-            <div id="mods-gallery" class="mods-container">
-                <!-- Mods dinâmicos aqui -->
-                <div class="loader" id="mods-loader">Carregando mods do bando...</div>
+            <div id="mods-gallery" class="grid">
+                <div class="loader" id="mods-loader">Mobilizando o bando...</div>
             </div>
 
-            <h3 style="text-align: center; color: var(--text-muted); margin-top: 40px; font-family: 'Rye', cursive;">
-                Fontes Externas</h3>
-            <div class="mods-container" style="justify-content: center; margin-top: 20px;">
-                <a href="https://www.nexusmods.com/reddeadredemption2" target="_blank" rel="noopener noreferrer"
-                    class="mod-card-gallery" style="max-width: 300px;">
-                    <div class="mod-card-banner" style="background: url('nexus-logo.png') center center/cover;"></div>
-                    <div class="mod-content">
-                        <h3 style="font-family: 'Rye', cursive; color: #da8e35;">Nexus Mods</h3>
-                        <p>A maior comunidade de modding do mundo.</p>
-                    </div>
+            <h3 style="text-align: center; color: var(--gold); margin-top: 60px; font-family: 'Rye', cursive;">Fontes
+                Externas</h3>
+            <div class="grid" style="margin-top: 30px; max-width: 900px; margin-inline: auto;">
+                <a href="https://www.nexusmods.com/reddeadredemption2" target="_blank" class="glass-card"
+                    style="text-decoration: none; text-align: center;">
+                    <img src="nexus-logo.png" alt="Nexus"
+                        style="height: 40px; margin-bottom:  profile; margin-bottom: 15px;">
+                    <h4 style="color: var(--primary-red); margin-bottom: 10px;">Nexus Mods</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">A maior comunidade de modding do mundo.</p>
                 </a>
-                <a href="https://www.rdr2mods.com/" target="_blank" rel="noopener noreferrer" class="mod-card-gallery"
-                    style="max-width: 300px;">
-                    <div class="mod-card-banner" style="background: url('rdrmods-logo.png') center center/cover;"></div>
-                    <div class="mod-content">
-                        <h3 style="font-family: 'Rye', cursive; color: #28a745;">RDR2 Mods</h3>
-                        <p>Fórum dedicado exclusivamente a RDR2.</p>
-                    </div>
+                <a href="https://www.rdr2mods.com/" target="_blank" class="glass-card"
+                    style="text-decoration: none; text-align: center;">
+                    <img src="rdrmods-logo.png" alt="RDR2 Mods" style="height: 40px; margin-bottom: 15px;">
+                    <h4 style="color: #28a745; margin-bottom: 10px;">RDR2 Mods</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">Fórum dedicado exclusivamente à saga.</p>
                 </a>
             </div>
         </section>
 
-        <section id="uploads" class="comments-section reveal" style="padding-top: 50px;">
-            <h2 class="section-title">Envie seu Mod</h2>
-            <div class="comments-container">
-                <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px;">Compartilhe suas criações
-                    com o bando. Envie o link do seu mod.</p>
-                <form id="mod-form" class="comment-form" enctype="multipart/form-data">
-                    <input type="text" id="mod-title" placeholder="Título do Mod" required>
-                    <textarea id="mod-description" rows="2"
-                        placeholder="Breve descrição do que o mod faz..."></textarea>
-                    <div class="file-input-wrapper" style="margin-bottom: 10px;">
-                        <label for="mod-file"
-                            style="display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.9rem;">Arquivo
-                            do Mod (.zip, .rar ou .txt)</label>
-                        <input type="file" id="mod-file" accept=".zip,.rar,.txt,.7z" required
-                            style="border: 1px dashed var(--primary-red); padding: 10px; width: 100%;">
+        <section id="uploads" class="reveal">
+            <h2 class="section-title">Contribuir com o Bando</h2>
+            <div class="glass-card" style="max-width: 700px; margin: 0 auto;">
+                <p style="text-align: center; color: var(--text-muted); margin-bottom: 30px;">Compartilhe suas criações.
+                    Todos os arquivos passam por inspeção de segurança.</p>
+                <form id="mod-form" class="comment-form">
+                    <input type="text" id="mod-title" placeholder="Título do Mod" required style="margin-bottom:15px;">
+                    <textarea id="mod-description" rows="3" placeholder="Descrição do mod..."
+                        style="margin-bottom:15px;"></textarea>
+                    <div style="margin-bottom: 20px;">
+                        <label
+                            style="display: block; margin-bottom: 10px; color: var(--text-muted); font-size: 0.9rem;">Arquivo
+                            do Mod (.zip, .rar ou .7z)</label>
+                        <input type="file" id="mod-file" accept=".zip,.rar,.txt,.7z" required>
                     </div>
-                    <button type="submit" class="submit-button">Enviar Mod ao Xerife</button>
-                    <p id="mod-status" style="display:none; text-align:center; margin-top:10px;"></p>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Enviar para Aprovação</button>
+                    <p id="mod-status" style="display:none; text-align:center; margin-top:20px; font-weight: 600;"></p>
                 </form>
             </div>
         </section>
 
-        <section id="downloads" class="mods-section reveal" style="padding-top: 50px; border-top: none;">
+        <section id="downloads" class="reveal" style="background: var(--bg-surface);">
             <h2 class="section-title">Savegame 100% Perfeito</h2>
-            <div class="mods-container" style="justify-content: center;">
-                <a href="https://www.mediafire.com/file/kcag0i0yhfoehpi/100%2525SAVEGAME%2521%2521.zip/file"
-                    target="_blank" rel="noopener noreferrer" class="mod-card-gallery"
-                    style="border-top: 4px solid #ffd700; max-width: 800px; text-align: center; display: block; text-decoration: none; color: inherit;">
-                    <div class="mod-card-banner" style="background: #ffd700; color: #000;">SAVEGAME 100%</div>
-                    <div class="mod-content">
-                        <h3 style="color: #ffd700;">O Fim da Jornada (100% Concluído)</h3>
-                        <p>Deseja explorar o Velho Oeste sem amarras e com todos os desafios épicos já superados? Baixe
-                            o save 100% perfeito de Red Dead Redemption 2. Todas as armas, roupas raras e mistérios
-                            revelados, prontos para a sua diversão pura no End-Game.</p>
-                        <span class="visit-link"
-                            style="color: #ffd700; font-weight: bold; display: block; margin-top: 15px;">📥 Baixar Save
-                            no MediaFire ➔</span>
-                    </div>
-                </a>
-            </div>
-        </section>
-
-        <section id="feedback" class="comments-section reveal" style="padding-top: 50px; background: rgba(0,0,0,0.3);">
-            <h2 class="section-title">Sugestões e Feedbacks</h2>
-            <div class="comments-container">
-                <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px;">Como podemos melhorar
-                    nosso acampamento? Deixe sua sugestão.</p>
-                <form id="feedback-form" class="comment-form">
-                    <textarea id="feedback-text" rows="3" placeholder="Sua sugestão ou feedback para o site..."
-                        required></textarea>
-                    <button type="submit" class="submit-button" style="background: #a8763e;">Enviar Feedback</button>
-                    <p id="feedback-status" style="display:none; text-align:center; margin-top:10px;"></p>
-                </form>
-            </div>
-        </section>
-
-        <section id="comments" class="comments-section reveal">
-            <h2 class="section-title">O que os Fãs Dizem</h2>
-            <div class="comments-container">
-                <form id="comment-form" class="comment-form">
-                    <input type="text" id="author" placeholder="Seu Nome (Cowboy/Cowgirl)" required>
-                    <textarea id="text" rows="4" placeholder="Escreva seu comentário sobre a saga..."
-                        required></textarea>
-                    <button type="submit" class="submit-button">Enviar Relato</button>
-                </form>
-                <div id="comments-list" class="comments-list">
-                    <!-- Comentários renderizados via JS -->
+            <div class="glass-card" style="max-width: 800px; margin: 0 auto; border: 1px solid var(--gold);">
+                <div style="text-align: center;">
+                    <h3 style="color: var(--gold); margin-bottom: 20px;">O Fim da Jornada</h3>
+                    <p style="margin-bottom: 30px;">Explore o Velho Oeste sem amarras. Todas as armas, roupas raras e
+                        mistérios revelados, prontos para a sua diversão no End-Game.</p>
+                    <a href="https://www.mediafire.com/file/kcag0i0yhfoehpi/100%2525SAVEGAME%2521%2521.zip/file"
+                        target="_blank" class="btn btn-primary">
+                        📥 Baixar Agora ➔
+                    </a>
                 </div>
             </div>
         </section>
 
-        <!-- Q&A Section (Dúvidas estilo Reddit) -->
-        <section id="duvidas" class="comments-section reveal" style="background:#2a2a2a;">
-            <h2 class="section-title">Dúvidas e Perguntas</h2>
-            <div class="comments-container">
-                <form id="question-form" class="comment-form">
-                    <input type="text" id="question-title" placeholder="Título da dúvida" required>
-                    <textarea id="question-text" rows="3" placeholder="Explique sua dúvida ou questão..." required></textarea>
-                    <button type="submit" class="submit-button">Publicar Pergunta</button>
+        <section id="feedback" class="reveal">
+            <h2 class="section-title">Voz do Acampamento</h2>
+            <div class="glass-card" style="max-width: 600px; margin: 0 auto;">
+                <form id="feedback-form">
+                    <textarea id="feedback-text" rows="4"
+                        placeholder="Sugestões ou feedbacks para melhorar nosso site..." required
+                        style="margin-bottom:20px;"></textarea>
+                    <button type="submit" class="btn btn-outline" style="width: 100%;">Enviar Feedback</button>
+                    <p id="feedback-status" style="display:none; text-align:center; margin-top:15px;"></p>
                 </form>
-                <div id="questions-list" class="comments-list">
-                    <!-- Perguntas e respostas renderizadas via JS -->
+            </div>
+        </section>
+
+        <section id="comments" class="reveal" style="background: var(--bg-surface);">
+            <h2 class="section-title">Relatos de Viagem</h2>
+            <div style="max-width: 800px; margin: 0 auto;">
+                <form id="comment-form" class="glass-card" style="margin-bottom: 50px;">
+                    <input type="text" id="author" placeholder="Seu Nome" required style="margin-bottom:15px;">
+                    <textarea id="text" rows="4" placeholder="Escreva seu relato..." required
+                        style="margin-bottom:20px;"></textarea>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Publicar Relato</button>
+                </form>
+                <div id="comments-list" class="grid" style="grid-template-columns: 1fr;">
+                    <!-- Comentários via JS -->
+                </div>
+            </div>
+        </section>
+
+        <section id="duvidas" class="reveal">
+            <h2 class="section-title">Mural de Dúvidas</h2>
+            <div style="max-width: 800px; margin: 0 auto;">
+                <form id="question-form" class="glass-card" style="margin-bottom: 50px;">
+                    <input type="text" id="question-title" placeholder="Assunto da dúvida" required
+                        style="margin-bottom:15px;">
+                    <textarea id="question-text" rows="3" placeholder="Qual sua questão, parceiro?" required
+                        style="margin-bottom:20px;"></textarea>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Publicar Pergunta</button>
+                </form>
+                <div id="questions-list" class="grid" style="grid-template-columns: 1fr;">
+                    <!-- Perguntas via JS -->
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- AI Chat Assistant -->
     <div id="ai-chat-widget">
         <button id="ai-chat-toggle" class="chat-toggle-btn">
-            <span class="chat-icon">💬</span>
-            <span class="chat-text">Falar com Dutch</span>
+            <span>💬</span>
+            <span>Dutch Van Der Linde</span>
         </button>
         <div id="ai-chat-window" class="chat-window" style="display: none;">
             <div class="chat-header">
-                <h3>Dutch (Assistente do Bando)</h3>
+                <h3>Dutch (Assistente)</h3>
                 <button id="close-chat" class="close-btn">&times;</button>
             </div>
             <div id="chat-messages" class="chat-body">
-                <div class="ai-msg">Saudações, forasteiro. Como posso ajudar o bando hoje?</div>
+                <div class="ai-msg">Saudações, parceiro. Eu tenho um plano para ajudar você. O que quer saber?</div>
             </div>
             <div class="chat-input-area">
                 <input type="text" id="chat-input" placeholder="Tire sua dúvida...">
@@ -230,10 +213,14 @@
     </div>
 
     <footer>
-        <p>Feito por um fã para fãs. Todos os direitos da franquia pertencem à Rockstar Games.</p>
+        <div
+            style="padding: 40px; text-align: center; border-top: 1px solid var(--glass-border); background: var(--bg-dark);">
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Feito por fãs para fãs. Logos e marcas pertencem à
+                Rockstar Games.</p>
+        </div>
     </footer>
 
-    <script src="script.js?v=2"></script>
+    <script src="script.js?v=3"></script>
 </body>
 
 </html>

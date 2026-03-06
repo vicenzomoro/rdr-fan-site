@@ -1,511 +1,302 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // === Scroll Reveal Animation ===
+    // === Scroll Effects ===
     const reveals = document.querySelectorAll(".reveal");
+    const navbar = document.querySelector(".navbar");
 
-    const revealOnScroll = () => {
-        const windowHeight = window.innerHeight;
-        const revealPoint = 100;
+    const handleScroll = () => {
+        // Navbar transparency
+        if (window.scrollY > 50) {
+            navbar.classList.add("scrolled");
+        } else {
+            navbar.classList.remove("scrolled");
+        }
 
+        // Section reveals
         reveals.forEach((reveal) => {
+            const windowHeight = window.innerHeight;
             const revealTop = reveal.getBoundingClientRect().top;
+            const revealPoint = 150;
+
             if (revealTop < windowHeight - revealPoint) {
                 reveal.classList.add("active");
             }
         });
     };
 
-    window.addEventListener("scroll", revealOnScroll);
-    revealOnScroll(); // Trigger on load
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
 
-    // === Navbar Background on Scroll ===
-    const navbar = document.querySelector(".navbar");
-    window.addEventListener("scroll", () => {
-        if (window.scrollY > 50) {
-            navbar.style.background = "rgba(10, 10, 10, 0.95)";
-            navbar.style.boxShadow = "0 2px 10px rgba(0,0,0,0.5)";
-        } else {
-            navbar.style.background = "rgba(18, 18, 18, 0.85)";
-            navbar.style.boxShadow = "none";
-        }
-    });
-
-    // === Comments System (API Integration) ===
-    const commentForm = document.getElementById("comment-form");
-    const commentsList = document.getElementById("comments-list");
-    const API_URL = '/api/comments';
-
-    // Check Login State
+    // === Authentication State ===
     const currentUser = localStorage.getItem('currentUser');
     const loginBtn = document.getElementById('nav-login-btn');
+    const authorInput = document.getElementById('author');
+    const commentInput = document.getElementById('text');
+    const commentSubmit = document.querySelector('#comment-form button');
+
     if (currentUser) {
         if (loginBtn) {
-            loginBtn.innerText = 'Sair (' + currentUser + ')';
-            loginBtn.href = "#"; // Prevent navigation
+            loginBtn.innerHTML = `<span>Sair (${currentUser})</span>`;
             loginBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 localStorage.removeItem('currentUser');
                 window.location.reload();
             });
         }
-        document.getElementById('author').value = currentUser;
-        document.getElementById('author').disabled = true;
-    } else {
-        const textInput = document.getElementById("text");
-        textInput.placeholder = "Você precisa estar logado para comentar.";
-        textInput.disabled = true;
-        document.getElementById("author").disabled = true;
-        document.getElementById("author").placeholder = "Visitante";
-
-        // also disable question form inputs
-        const qFormEl = document.getElementById('question-form');
-        if (qFormEl) {
-            const qi = qFormEl.querySelector('input');
-            const qt = qFormEl.querySelector('textarea');
-            const qb = qFormEl.querySelector('button');
-            if (qi) { qi.disabled = true; qi.placeholder = 'Faça login para postar uma dúvida.'; }
-            if (qt) { qt.disabled = true; qt.placeholder = 'Faça login para postar uma dúvida.'; }
-            if (qb) qb.disabled = true;
+        if (authorInput) {
+            authorInput.value = currentUser;
+            authorInput.disabled = true;
         }
+    } else {
+        if (commentInput) {
+            commentInput.placeholder = "Faça login para comentar...";
+            commentInput.disabled = true;
+        }
+        if (authorInput) authorInput.disabled = true;
+        if (commentSubmit) commentSubmit.disabled = true;
     }
 
     const escapeHtml = (str) => {
         if (!str) return '';
         return String(str).replace(/[&<>"']/g, (s) => {
-            switch (s) {
-                case '&': return '&amp;';
-                case '<': return '&lt;';
-                case '>': return '&gt;';
-                case '"': return '&quot;';
-                case "'": return '&#39;';
-                default: return s;
-            }
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return map[s];
         });
     };
 
-    const renderComment = (comment) => {
-        const commentEl = document.createElement("div");
-        commentEl.classList.add("comment-item");
-        commentEl.innerHTML = `
-            <div class="comment-author">${escapeHtml(comment.author)}</div>
-            <div class="comment-text">${escapeHtml(comment.text)}</div>
-            <div class="comment-date">${escapeHtml(comment.date)}</div>
-        `;
-        // Since API returns ordered by ID DESC, we append to maintain order
-        commentsList.appendChild(commentEl);
-    };
+    // === Comments System ===
+    const commentsList = document.getElementById("comments-list");
+    const commentForm = document.getElementById("comment-form");
 
-    // Load initial comments from the API
     const loadComments = async () => {
+        if (!commentsList) return;
         try {
-            commentsList.innerHTML = '<p style="color: var(--text-muted);">Carregando relatos do oeste...</p>';
-            const response = await fetch(API_URL);
+            commentsList.innerHTML = '<div class="loader">Carregando relatos...</div>';
+            const response = await fetch('/api/comments');
             const data = await response.json();
+            commentsList.innerHTML = '';
 
-            commentsList.innerHTML = ''; // clear loading
-
-            if (data.data && data.data.length > 0) {
-                data.data.forEach(renderComment);
+            const comments = data.data || [];
+            if (comments.length > 0) {
+                comments.forEach(c => {
+                    const card = document.createElement("div");
+                    card.className = "glass-card comment-card reveal active";
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                            <strong style="color:var(--gold); font-size:1.1rem;">${escapeHtml(c.author)}</strong>
+                            <small style="color:var(--text-muted);">${escapeHtml(c.date)}</small>
+                        </div>
+                        <p style="color:var(--text-main); line-height:1.6;">${escapeHtml(c.text)}</p>
+                    `;
+                    commentsList.appendChild(card);
+                });
             } else {
-                commentsList.innerHTML = '<p style="color: var(--text-muted);">Seja o primeiro a relatar suas aventuras!</p>';
+                commentsList.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:40px;">Seja o primeiro a relatar suas aventuras!</p>';
             }
-        } catch (error) {
-            console.error("Error fetching comments:", error);
-            commentsList.innerHTML = '<p style="color: #ff4c4c;">Erro ao carregar os comentários. Talvez os banditos tenham cortado o telégrafo.</p>';
+        } catch (err) {
+            commentsList.innerHTML = '<p style="color:var(--primary-red); text-align:center;">Erro ao carregar relatos.</p>';
         }
     };
 
-    loadComments();
+    if (commentForm) {
+        commentForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!currentUser) return alert("Você precisa estar logado.");
 
-    // Handle form submission
-    commentForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
+            const text = commentInput.value.trim();
+            if (!text) return;
 
-        if (!currentUser) {
-            alert("Apenas membros do bando podem comentar. Registre-se ou faça login primeiro!");
-            window.location.href = 'login.html';
-            return;
-        }
-
-        const authorInput = document.getElementById("author");
-        const textInput = document.getElementById("text");
-
-        const newComment = {
-            author: authorInput.value.trim(),
-            text: textInput.value.trim(),
-            date: new Date().toLocaleDateString()
-        };
-
-        if (newComment.author && newComment.text) {
-            // Visual feedback - start loading
-            const btn = commentForm.querySelector(".submit-button");
-            const originalText = btn.innerText;
-            btn.innerText = "Enviando telégrafo...";
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Enviando...';
             btn.disabled = true;
 
             try {
-                const response = await fetch(API_URL, {
+                const res = await fetch('/api/comments', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newComment)
+                    body: JSON.stringify({ author: currentUser, text, date: new Date().toLocaleDateString() })
                 });
 
-                if (response.ok) {
-                    // Prepend locally so it shows immediately at the top
-                    const commentEl = document.createElement("div");
-                    commentEl.classList.add("comment-item");
-                    commentEl.innerHTML = `
-                        <div class="comment-author">${newComment.author}</div>
-                        <div class="comment-text">${newComment.text}</div>
-                        <div class="comment-date">${newComment.date}</div>
-                    `;
-                    // Remove "Be the first" message if it exists
-                    if (commentsList.children.length === 1 && commentsList.children[0].tagName === 'P') {
-                        commentsList.innerHTML = '';
-                    }
-                    commentsList.prepend(commentEl);
-
-                    // Clear inputs
-                    textInput.value = "";
-
-                    // Success feedback
-                    btn.innerText = "Relato Enviado!";
-                    btn.style.background = "#28a745";
-                } else {
-                    throw new Error("Server response wasn't OK");
+                if (res.ok) {
+                    commentInput.value = "";
+                    loadComments();
                 }
-            } catch (error) {
-                console.error("Error saving comment:", error);
-                btn.innerText = "Falha ao enviar.";
-                btn.style.background = "#ff4c4c";
+            } catch (err) {
+                console.error(err);
             } finally {
-                setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.style.background = "var(--primary-red)";
-                    btn.disabled = false;
-                }, 2000);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
-        }
-    });
+        });
+    }
+
+    if (commentsList) loadComments();
 
     // === Q&A Section ===
-    const questionForm = document.getElementById("question-form");
     const questionsList = document.getElementById("questions-list");
-    const QUESTIONS_URL = '/api/questions';
-
-    const renderReply = (reply, parentEl) => {
-        const rEl = document.createElement("div");
-        rEl.classList.add("comment-item");
-        rEl.style.marginLeft = '20px';
-        rEl.innerHTML = `
-            <div class="comment-author">${escapeHtml(reply.author)}</div>
-            <div class="comment-text">${escapeHtml(reply.text)}</div>
-            <div class="comment-date">${escapeHtml(reply.date)}</div>
-        `;
-        parentEl.appendChild(rEl);
-    };
-
-    const renderQuestion = (q) => {
-        const qEl = document.createElement("div");
-        qEl.classList.add("comment-item");
-        qEl.innerHTML = `
-            <div class="question-title" style="font-weight:bold; font-size:1.1rem; margin-bottom:5px;">${escapeHtml(q.title)}</div>
-            <div class="comment-author">${escapeHtml(q.author)}</div>
-            <div class="comment-text">${escapeHtml(q.text)}</div>
-            <div class="comment-date">${escapeHtml(q.date)}</div>
-            <div class="replies-container"></div>
-            ${currentUser ? `
-            <form class="reply-form" data-qid="${q.id}" style="margin-top:10px;">
-                 <input type="text" placeholder="Responder..." required style="width:80%;padding:8px;border:1px solid var(--glass-border);border-radius:4px;">
-                 <button type="submit" class="submit-button" style="font-size:0.9rem;padding:5px 10px;">Enviar</button>
-            </form>` : ''}
-        `;
-        const repliesDiv = qEl.querySelector(".replies-container");
-        if (q.replies && q.replies.length) {
-            q.replies.forEach(r => renderReply(r, repliesDiv));
-        }
-        questionsList.appendChild(qEl);
-    };
+    const questionForm = document.getElementById("question-form");
 
     const loadQuestions = async () => {
         if (!questionsList) return;
-        questionsList.innerHTML = '<p style="color: var(--text-muted);">Carregando perguntas...</p>';
         try {
-            const res = await fetch(QUESTIONS_URL);
+            const res = await fetch('/api/questions');
             const data = await res.json();
             questionsList.innerHTML = '';
-            if (data.data && data.data.length) {
-                data.data.forEach(renderQuestion);
-            } else {
-                questionsList.innerHTML = '<p style="color: var(--text-muted);">Ainda não há dúvidas postadas.</p>';
-            }
-        } catch (err) {
-            console.error("Erro ao carregar dúvidas:", err);
-            questionsList.innerHTML = '<p style="color:#ff4c4c;">Erro ao carregar dúvidas.</p>';
-        }
-    };
+            const qs = data.data || [];
 
-    loadQuestions();
+            if (qs.length > 0) {
+                qs.forEach(q => {
+                    const card = document.createElement("div");
+                    card.className = "glass-card reveal active";
+                    card.style.marginBottom = "20px";
+                    card.innerHTML = `
+                        <h3 style="color:var(--primary-red); margin-bottom:10px; font-family:'Rye';">${escapeHtml(q.title)}</h3>
+                        <p style="margin-bottom:15px; color:var(--text-main);">${escapeHtml(q.text)}</p>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <small style="color:var(--text-muted);">Por ${escapeHtml(q.author)} | ${escapeHtml(q.date)}</small>
+                            ${currentUser ? `<button class="btn btn-outline" style="padding:5px 15px; font-size:0.8rem;" onclick="showReplyForm(${q.id}, this)">Responder</button>` : ''}
+                        </div>
+                        <div class="replies" style="margin-top:15px; border-left: 2px solid var(--primary-red); padding-left:15px;"></div>
+                    `;
+
+                    const repliesDiv = card.querySelector('.replies');
+                    if (q.replies && q.replies.length > 0) {
+                        q.replies.forEach(r => {
+                            repliesDiv.innerHTML += `
+                                <div style="margin-bottom:10px;">
+                                    <strong>${escapeHtml(r.author)}:</strong> ${escapeHtml(r.text)}
+                                    <br><small style="color:var(--text-muted); font-size:0.75rem;">${escapeHtml(r.date)}</small>
+                                </div>
+                            `;
+                        });
+                    }
+                    questionsList.appendChild(card);
+                });
+            } else {
+                questionsList.innerHTML = '<p style="text-align:center; color:var(--text-muted);">Procure o Xerife ou poste sua dúvida.</p>';
+            }
+        } catch (err) { console.error(err); }
+    };
 
     if (questionForm) {
-        questionForm.addEventListener("submit", async e => {
+        questionForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            if (!currentUser) {
-                alert("Faça login para publicar uma dúvida.");
-                window.location.href = 'login.html';
-                return;
-            }
-            const title = document.getElementById("question-title").value.trim();
-            const text = document.getElementById("question-text").value.trim();
+            const title = document.getElementById('question-title').value.trim();
+            const text = document.getElementById('question-text').value.trim();
             if (!title || !text) return;
-            const newQ = { author: currentUser, title, text, date: new Date().toLocaleDateString() };
+
             try {
-                const res = await fetch(QUESTIONS_URL, {
+                const res = await fetch('/api/questions', {
                     method: 'POST',
-                    headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify(newQ)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ author: currentUser, title, text, date: new Date().toLocaleDateString() })
                 });
                 if (res.ok) {
-                    loadQuestions();
                     questionForm.reset();
-                }
-            } catch(err){ console.error(err); }
-        });
-    }
-
-    // handle reply submission
-    if (questionsList) {
-        questionsList.addEventListener("submit", async e => {
-            if (!e.target.matches('.reply-form')) return;
-            e.preventDefault();
-            const qid = e.target.getAttribute('data-qid');
-            const input = e.target.querySelector('input');
-            const text = input.value.trim();
-            if (!text) return;
-            const replyPayload = { author: currentUser, text, date: new Date().toLocaleDateString() };
-            try {
-                const res = await fetch(`${QUESTIONS_URL}/${qid}/replies`, {
-                    method:'POST',
-                    headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify(replyPayload)
-                });
-                if (res.ok) {
                     loadQuestions();
                 }
-            } catch(err){ console.error(err); }
+            } catch (err) { console.error(err); }
         });
     }
 
-    // === MOD SUBMISSION ===
-    const modForm = document.getElementById("mod-form");
-    const modStatus = document.getElementById("mod-status");
+    if (questionsList) loadQuestions();
 
-    modForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        if (!currentUser) {
-            alert("Faça login para enviar seu mod!");
-            return;
-        }
-
-        const title = document.getElementById("mod-title").value;
-        const description = document.getElementById("mod-description").value;
-        const modFile = document.getElementById("mod-file").files[0];
-
-        if (!modFile) {
-            alert("Por favor, selecione um arquivo.");
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append("username", currentUser);
-        formData.append("title", title);
-        formData.append("description", description);
-        formData.append("modFile", modFile);
-
-        modStatus.innerText = "🔍 Escaneando arquivo por segurança...";
-        modStatus.style.color = "#a8763e";
-        modStatus.style.display = "block";
-
-        try {
-            const res = await fetch('/api/submissions/upload', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                modStatus.innerText = "✅ Mod verificado e enviado com sucesso! O Xerife irá analisar.";
-                modStatus.style.color = "#28a745";
-                modForm.reset();
-            } else {
-                modStatus.innerText = "❌ " + (data.error || "Falha ao enviar mod.");
-                modStatus.style.color = "#ff4c4c";
-            }
-        } catch (err) {
-            modStatus.innerText = "❌ Falha ao conectar ao servidor.";
-            modStatus.style.color = "#ff4c4c";
-        }
-    });
-
-    // === FEEDBACK SUBMISSION ===
-    const feedbackForm = document.getElementById("feedback-form");
-    const feedbackStatus = document.getElementById("feedback-status");
-
-    feedbackForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const username = currentUser || "Anônimo";
-        const message = document.getElementById("feedback-text").value;
-
-        try {
-            const res = await fetch('/api/feedback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, message })
-            });
-            if (res.ok) {
-                feedbackStatus.innerText = "Obrigado pelo seu feedback, forasteiro!";
-                feedbackStatus.style.color = "#28a745";
-                feedbackStatus.style.display = "block";
-                feedbackForm.reset();
-            }
-        } catch (err) {
-            feedbackStatus.innerText = "Falha ao enviar feedback.";
-            feedbackStatus.style.color = "#ff4c4c";
-            feedbackStatus.style.display = "block";
-        }
-    });
-
-    // === MOD GALLERY & SEARCH ===
+    // === Mod Gallery ===
     const modsGallery = document.getElementById("mods-gallery");
-    const modsLoader = document.getElementById("mods-loader");
     const modSearchInput = document.getElementById("mod-search");
-    let allMods = [];
 
-    const fetchMods = async (searchTerm = '') => {
-        try {
-            if (modsLoader) modsLoader.style.display = "block";
-            const response = await fetch(`/api/mods?search=${encodeURIComponent(searchTerm)}`);
-            const data = await response.json();
-            allMods = data.data || [];
-            renderMods(allMods);
-        } catch (error) {
-            console.error("Error fetching mods:", error);
-            if (modsGallery) modsGallery.innerHTML = '<p style="color: #ff4c4c;">Erro ao carregar a galeria de mods.</p>';
-        } finally {
-            if (modsLoader) modsLoader.style.display = "none";
-        }
-    };
-
-    const renderMods = (mods) => {
+    const fetchMods = async (search = '') => {
         if (!modsGallery) return;
-        modsGallery.innerHTML = '';
-        if (mods.length === 0) {
-            modsGallery.innerHTML = '<p style="color: var(--text-muted);">Nenhum mod encontrado para essa busca.</p>';
-            return;
-        }
+        try {
+            const res = await fetch(`/api/mods?search=${encodeURIComponent(search)}`);
+            const data = await res.json();
+            modsGallery.innerHTML = '';
+            const mods = data.data || [];
 
-        mods.forEach(mod => {
-            const modCard = document.createElement("div");
-            modCard.className = "mod-card-gallery reveal active";
-            modCard.innerHTML = `
-                <div class="mod-card-banner">MOD</div>
-                <div class="mod-content">
-                    <h3>${mod.title}</h3>
-                    <p>${mod.description || 'Sem descrição.'}</p>
-                    <div class="mod-card-footer">
-                        <span class="mod-author-tag">👤 ${mod.username}</span>
-                        <a href="${mod.link}" target="_blank" class="download-link-btn">Baixar</a>
-                    </div>
-                </div>
-            `;
-            modsGallery.appendChild(modCard);
-        });
+            if (mods.length > 0) {
+                mods.forEach(mod => {
+                    const card = document.createElement("div");
+                    card.className = "glass-card reveal active";
+                    card.innerHTML = `
+                        <div class="mod-badge">MOD</div>
+                        <h3 style="color:var(--gold); margin-bottom:10px;">${escapeHtml(mod.title)}</h3>
+                        <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:20px;">${escapeHtml(mod.description || 'Sem descrição.')}</p>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:0.8rem; color:var(--text-main);">👤 ${escapeHtml(mod.username)}</span>
+                            <a href="${escapeHtml(mod.link)}" target="_blank" class="btn btn-primary" style="padding:6px 15px; font-size:0.8rem;">BAIXAR</a>
+                        </div>
+                    `;
+                    modsGallery.appendChild(card);
+                });
+            } else {
+                modsGallery.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:40px;">Nenhum mod encontrado.</p>';
+            }
+        } catch (err) { console.error(err); }
     };
 
     window.handleSearch = () => {
-        const term = modSearchInput.value;
-        fetchMods(term);
-    };
-
-    window.filterMods = (type) => {
-        const navBtns = document.querySelectorAll(".mod-nav-btn");
-        navBtns.forEach(btn => btn.classList.remove("active"));
-
-        // Find the button that was clicked
-        const clickedBtn = Array.from(navBtns).find(btn => btn.innerText.toLowerCase().includes(type.toLowerCase()) || (type === 'all' && btn.innerText === 'Todos'));
-        if (clickedBtn) clickedBtn.classList.add("active");
-
-        if (type === 'all' || type === 'recent') {
-            fetchMods();
-        } else if (type === 'popular') {
-            renderMods([...allMods].reverse());
-        }
+        if (modSearchInput) fetchMods(modSearchInput.value);
     };
 
     if (modsGallery) fetchMods();
 
-    // === AI CHAT ASSISTANT ===
+    // === AI Chat ===
     const chatToggle = document.getElementById("ai-chat-toggle");
     const chatWindow = document.getElementById("ai-chat-window");
-    const closeChat = document.getElementById("close-chat");
-    const chatInput = document.getElementById("chat-input");
-    const sendChat = document.getElementById("send-chat");
     const chatMessages = document.getElementById("chat-messages");
+    const chatInput = document.getElementById("chat-input");
+    const sendBtn = document.getElementById("send-chat");
 
     if (chatToggle) {
         chatToggle.addEventListener("click", () => {
-            chatWindow.style.display = "flex";
+            chatWindow.classList.add("active");
             chatToggle.style.display = "none";
         });
     }
 
-    if (closeChat) {
-        closeChat.addEventListener("click", () => {
-            chatWindow.style.display = "none";
-            chatToggle.style.display = "flex";
-        });
-    }
+    window.closeChat = () => {
+        chatWindow.classList.remove("active");
+        chatToggle.style.display = "flex";
+    };
 
-    const appendMessage = (text, type) => {
-        const msgDiv = document.createElement("div");
-        msgDiv.className = type === 'ai' ? 'ai-msg' : 'user-msg';
-        msgDiv.innerText = text;
-        chatMessages.appendChild(msgDiv);
+    const addMessage = (text, type) => {
+        const msg = document.createElement("div");
+        msg.className = `message ${type}`;
+        msg.innerHTML = `<div class="content">${text}</div>`;
+        chatMessages.appendChild(msg);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     };
 
     const handleChat = async () => {
-        const message = chatInput.value.trim();
-        if (!message) return;
+        const text = chatInput.value.trim();
+        if (!text) return;
 
-        appendMessage(message, 'user');
+        addMessage(text, 'user');
         chatInput.value = "";
 
-        // Typing indicator
-        const typingDiv = document.createElement("div");
-        typingDiv.className = "ai-msg";
-        typingDiv.innerText = "Dutch está pensando...";
-        chatMessages.appendChild(typingDiv);
+        // Thinking...
+        const typing = document.createElement("div");
+        typing.className = "message ai typing";
+        typing.innerHTML = '<div class="content">Dutch está pensando...</div>';
+        chatMessages.appendChild(typing);
 
         try {
             const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message })
+                body: JSON.stringify({ message: text })
             });
             const data = await res.json();
-
-            chatMessages.removeChild(typingDiv);
-            appendMessage(data.response, 'ai');
+            chatMessages.removeChild(typing);
+            addMessage(data.response, 'ai');
         } catch (err) {
-            chatMessages.removeChild(typingDiv);
-            appendMessage("Desculpe, o telégrafo falhou. Tente novamente!", 'ai');
+            chatMessages.removeChild(typing);
+            addMessage("O telégrafo falhou, tente novamente!", 'ai');
         }
     };
 
-    if (sendChat) {
-        sendChat.addEventListener("click", handleChat);
-        chatInput.addEventListener("keypress", (e) => {
-            if (e.key === 'Enter') handleChat();
-        });
+    if (sendBtn) {
+        sendBtn.addEventListener("click", handleChat);
+        chatInput.addEventListener("keypress", (e) => { if (e.key === 'Enter') handleChat(); });
     }
 });

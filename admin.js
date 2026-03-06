@@ -19,12 +19,15 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
+    let adminToken = "";
+
     // Tabs elements
     const commentsList = document.getElementById("admin-comments-list");
     const usersTableBody = document.getElementById("users-table-body");
     const logsTableBody = document.getElementById("logs-table-body");
-
-    let adminToken = "";
+    const feedbackTableBody = document.getElementById("feedback-table-body");
+    const questionsList = document.getElementById("admin-questions-list");
+    const submissionsList = document.getElementById("submissions-list");
 
     // utility functions
     const loadStats = async () => {
@@ -34,29 +37,37 @@ document.addEventListener("DOMContentLoaded", () => {
                 headers: { 'Authorization': adminToken }
             });
             const data = await res.json();
-            document.getElementById('stat-users').querySelector('span').innerText = data.users || 0;
-            document.getElementById('stat-comments').querySelector('span').innerText = data.comments || 0;
-            document.getElementById('stat-questions').querySelector('span').innerText = data.questions || 0;
-            document.getElementById('stat-mods').querySelector('span').innerText = data.mods || 0;
-            document.getElementById('stat-pending-mods').querySelector('span').innerText = data.pendingMods || 0;
-            document.getElementById('stat-feedback').querySelector('span').innerText = data.feedback || 0;
+            document.getElementById('stat-users').innerText = data.users || 0;
+            document.getElementById('stat-comments').innerText = data.comments || 0;
+            document.getElementById('stat-mods').innerText = data.mods || 0;
+            document.getElementById('stat-feedback').innerText = data.feedback || 0;
         } catch (err) {
             console.error('Erro ao carregar estatísticas:', err);
         }
     };
 
-    const logoutAdmin = () => {
+    window.logoutAdmin = () => {
         adminToken = '';
         window.location.reload();
     };
 
-    window.switchTab = (tabName) => {
-        document.querySelectorAll('.admin-section').forEach(sec => sec.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    window.switchTab = (tabName, event) => {
+        if (event) event.preventDefault();
 
-        document.getElementById(`tab-${tabName}`).classList.add('active');
-        document.querySelector(`.tab-btn[onclick="switchTab('${tabName}')"]`).classList.add('active');
+        // Update Nav
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        if (event) {
+            event.target.classList.add('active');
+        } else {
+            document.querySelector(`.nav-item[onclick*="${tabName}"]`).classList.add('active');
+        }
 
+        // Update Content
+        document.querySelectorAll('.admin-tab').forEach(tab => tab.style.display = 'none');
+        const targetTab = document.getElementById(`tab-${tabName}`);
+        if (targetTab) targetTab.style.display = 'block';
+
+        // Load Data
         if (tabName === 'dashboard') loadStats();
         if (tabName === 'comments') loadAdminComments();
         if (tabName === 'users') loadAdminUsers();
@@ -80,8 +91,8 @@ document.addEventListener("DOMContentLoaded", () => {
             if (res.ok) {
                 adminToken = passInput;
                 loginSection.style.display = 'none';
-                panelSection.style.display = 'block';
-                switchTab('dashboard'); // show dashboard on entry
+                panelSection.style.display = 'grid';
+                switchTab('dashboard');
             } else {
                 loginError.style.display = 'block';
             }
@@ -92,410 +103,204 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // === COMMENTS TAB ===
-    const loadAdminComments = async (searchTerm = '') => {
+    const loadAdminComments = async () => {
         try {
             const response = await fetch('/api/comments');
             const data = await response.json();
-
             commentsList.innerHTML = '';
-
-            let comments = (data.data && Array.isArray(data.data)) ? data.data : [];
-            if (searchTerm) {
-                comments = comments.filter(c => c.author.toLowerCase().includes(searchTerm.toLowerCase()) || c.text.toLowerCase().includes(searchTerm.toLowerCase()));
-            }
+            let comments = data.data || [];
 
             if (comments.length > 0) {
                 comments.forEach(comment => {
                     const el = document.createElement("div");
-                    el.classList.add("comment-item");
+                    el.className = "card";
+                    el.style.marginBottom = "20px";
                     el.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div>
-                                <div class="comment-author">${escapeHtml(comment.author)}</div>
-                                <div class="comment-text">${escapeHtml(comment.text)}</div>
-                                <div class="comment-date">${escapeHtml(comment.date || '-')}</div>
+                                <h4 style="color: var(--gold); margin-bottom:10px;">${escapeHtml(comment.author)}</h4>
+                                <p style="color: var(--text-main);">${escapeHtml(comment.text)}</p>
+                                <small style="color: var(--text-muted); display:block; margin-top:10px;">${escapeHtml(comment.date || '-')}</small>
                             </div>
-                            <button onclick="deleteComment(${comment.id})" class="ban-btn" style="font-family: 'Rye', cursive;">Apagar</button>
+                            <button onclick="deleteComment(${comment.id})" class="btn btn-outline" style="border-color: #ff4c4c; color: #ff4c4c; padding: 5px 12px; font-size: 0.8rem;">Apagar</button>
                         </div>
                     `;
                     commentsList.appendChild(el);
                 });
             } else {
-                commentsList.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Nenhum relato encontrado na cidade.</p>';
+                commentsList.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px;">Nenhum relato no acampamento.</p>';
             }
-        } catch (error) {
-            commentsList.innerHTML = '<p style="color: #ff4c4c; text-align: center;">Erro ao carregar os comentários.</p>';
-        }
+        } catch (error) { console.error(error); }
     };
 
-    // search handler for comments
-    const commentsSearchInput = document.getElementById('search-comments');
-    if (commentsSearchInput) {
-        commentsSearchInput.addEventListener('input', () => {
-            loadAdminComments(commentsSearchInput.value);
-        });
-    }
-
-
     window.deleteComment = async (id) => {
-        if (!confirm("Tem certeza que deseja apagar este relato da face da terra?")) return;
+        if (!confirm("Confirmar a exclusão deste relato?")) return;
         try {
-            const res = await fetch(`/api/comments/${id}`, {
+            await fetch(`/api/comments/${id}`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }
+                headers: { 'Authorization': adminToken }
             });
-            if (res.ok) { loadAdminComments(); loadStats(); }
-            else alert("Falha ao deletar.");
+            loadAdminComments(); loadStats();
         } catch (err) { alert("Erro de conexão."); }
     };
 
     // === USERS TAB ===
-    const loadAdminUsers = async (searchTerm = '') => {
+    const loadAdminUsers = async () => {
         try {
-            const response = await fetch('/api/admin/users', {
-                headers: { 'Authorization': adminToken }
-            });
-            const data = await response.json();
-
+            const res = await fetch('/api/admin/users', { headers: { 'Authorization': adminToken } });
+            const data = await res.json();
             usersTableBody.innerHTML = '';
             let users = data.data || [];
-            if (searchTerm) {
-                users = users.filter(u => u.username.toLowerCase().includes(searchTerm.toLowerCase()));
-            }
-            if (users.length) {
-                users.forEach(user => {
-                    const isBanned = user.is_banned === true;
-                    usersTableBody.innerHTML += `
-                        <tr>
-                            <td>${user.id}</td>
-                            <td>${escapeHtml(user.username)}</td>
-                            <td style="color: ${isBanned ? '#ff4c4c' : '#28a745'}; font-weight: bold;">
-                                ${isBanned ? 'Preso / Banido' : 'Livre'}
-                            </td>
-                            <td>
-                                <button class="${isBanned ? 'unban-btn' : 'ban-btn'}" onclick="toggleBan(${user.id}, ${!isBanned})">
-                                    ${isBanned ? 'Soltar (Desbanir)' : 'Prender (Banir)'}
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } else {
-                usersTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Nenhum usuário encontrado.</td></tr>';
-            }
-        } catch (error) { console.error(error); }
-    };
 
-    const usersSearchInput = document.getElementById('search-users');
-    if (usersSearchInput) {
-        usersSearchInput.addEventListener('input', () => {
-            loadAdminUsers(usersSearchInput.value);
-        });
-    }
+            users.forEach(user => {
+                const isBanned = user.is_banned === true;
+                usersTableBody.innerHTML += `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td style="font-weight: 600;">${escapeHtml(user.username)}</td>
+                        <td><span style="color: ${isBanned ? '#ff4c4c' : '#28a745'}; background: ${isBanned ? 'rgba(255,76,76,0.1)' : 'rgba(40,167,69,0.1)'}; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">${isBanned ? 'Preso' : 'Ativo'}</span></td>
+                        <td>
+                            <button class="btn btn-outline" style="padding: 4px 10px; font-size: 0.75rem; border-color: ${isBanned ? '#28a745' : '#ff4c4c'}; color: ${isBanned ? '#28a745' : '#ff4c4c'};" onclick="toggleBan(${user.id}, ${!isBanned})">
+                                ${isBanned ? 'Soltar' : 'Banir'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        } catch (err) { console.error(err); }
+    };
 
     window.toggleBan = async (userId, banStatus) => {
-        const action = banStatus ? "banir/prender" : "desbanir/soltar";
-        if (!confirm(`Deseja realmente ${action} este usuário?`)) return;
-
         try {
-            const res = await fetch(`/api/admin/users/${userId}/ban`, {
+            await fetch(`/api/admin/users/${userId}/ban`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': adminToken
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
                 body: JSON.stringify({ is_banned: banStatus })
             });
-            if (res.ok) { loadAdminUsers(); loadStats(); }
-            else alert("Falha na operação.");
-        } catch (err) { alert("Erro de conexão."); }
+            loadAdminUsers(); loadStats();
+        } catch (err) { console.error(err); }
     };
 
-    // === SECURITY LOGS TAB ===
-    const loadAdminLogs = async (searchTerm = '') => {
+    // === SECURITY LOGS ===
+    const loadAdminLogs = async () => {
         try {
-            const response = await fetch('/api/admin/logs', {
-                headers: { 'Authorization': adminToken }
-            });
-            const data = await response.json();
-
+            const res = await fetch('/api/admin/logs', { headers: { 'Authorization': adminToken } });
+            const data = await res.json();
             logsTableBody.innerHTML = '';
             let logs = data.data || [];
-            if (searchTerm) {
-                const term = searchTerm.toLowerCase();
-                logs = logs.filter(l => l.ip_address.toLowerCase().includes(term) || (l.user_agent||'').toLowerCase().includes(term));
-            }
-            if (logs.length > 0) {
-                logs.forEach(log => {
-                    const dateStr = new Date(log.created_at).toLocaleString('pt-BR');
-                    logsTableBody.innerHTML += `
-                        <tr>
-                            <td>${dateStr}</td>
-                            <td style="color: #ff4c4c; font-weight: bold;">${escapeHtml(log.ip_address)}</td>
-                            <td style="font-size: 0.8rem; color: #ccc;">${escapeHtml(log.user_agent)}</td>
-                            <td><code style="background: rgba(0,0,0,0.8); padding: 5px; border-radius:3px;">${escapeHtml(log.attempt_password || 'Desconhecida')}</code></td>
-                        </tr>
-                    `;
-                });
-            } else {
-                logsTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Nenhuma invasão registrada recentemente.</td></tr>';
-            }
-        } catch (error) { console.error(error); }
-    };
 
-    const logsSearchInput = document.getElementById('search-logs');
-    if (logsSearchInput) {
-        logsSearchInput.addEventListener('input', () => {
-            loadAdminLogs(logsSearchInput.value);
-        });
-    }
+            logs.forEach(log => {
+                logsTableBody.innerHTML += `
+                    <tr>
+                        <td>${new Date(log.created_at).toLocaleString()}</td>
+                        <td style="color: #ff4c4c; font-family: monospace;">${escapeHtml(log.ip_address)}</td>
+                        <td style="font-size: 0.75rem; color: var(--text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(log.user_agent)}</td>
+                        <td><code style="background: #000; padding: 2px 6px; border-radius: 4px;">${escapeHtml(log.attempt_password || '-')}</code></td>
+                    </tr>
+                `;
+            });
+        } catch (err) { console.error(err); }
+    };
 
     // === FEEDBACK TAB ===
-    const loadAdminFeedback = async (searchTerm = '') => {
+    const loadAdminFeedback = async () => {
         try {
-            const response = await fetch('/api/admin/feedback', {
-                headers: { 'Authorization': adminToken }
-            });
-            const data = await response.json();
-            const tableBody = document.getElementById("feedback-table-body");
-            tableBody.innerHTML = '';
+            const res = await fetch('/api/admin/feedback', { headers: { 'Authorization': adminToken } });
+            const data = await res.json();
+            feedbackTableBody.innerHTML = '';
             let feedbacks = data.data || [];
-            if (searchTerm) {
-                const term = searchTerm.toLowerCase();
-                feedbacks = feedbacks.filter(fb => fb.username.toLowerCase().includes(term) || fb.message.toLowerCase().includes(term));
-            }
-            if (feedbacks.length) {
-                feedbacks.forEach(fb => {
-                    const date = new Date(fb.created_at).toLocaleDateString('pt-BR');
-                    tableBody.innerHTML += `
-                        <tr>
-                            <td>${date}</td>
-                            <td>${escapeHtml(fb.username)}</td>
-                            <td>${escapeHtml(fb.message)}</td>
-                        </tr>
-                    `;
-                });
-            } else {
-                tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Sem feedbacks.</td></tr>';
-            }
-        } catch (error) { console.error(error); }
+
+            feedbacks.forEach(fb => {
+                feedbackTableBody.innerHTML += `
+                    <tr>
+                        <td>${new Date(fb.created_at).toLocaleDateString()}</td>
+                        <td>${escapeHtml(fb.username)}</td>
+                        <td style="font-size: 0.9rem;">${escapeHtml(fb.message)}</td>
+                    </tr>
+                `;
+            });
+        } catch (err) { console.error(err); }
     };
-
-    const feedbackSearchInput = document.getElementById('search-feedback');
-    if (feedbackSearchInput) {
-        feedbackSearchInput.addEventListener('input', () => {
-            loadAdminFeedback(feedbackSearchInput.value);
-        });
-    }
-
 
     // === QUESTIONS TAB ===
-    const loadAdminQuestions = async (searchTerm = '') => {
+    const loadAdminQuestions = async () => {
         try {
-            const response = await fetch('/api/admin/questions', {
-                headers: { 'Authorization': adminToken }
-            });
-            const data = await response.json();
-            const list = document.getElementById('admin-questions-list');
-            list.innerHTML = '';
+            const res = await fetch('/api/admin/questions', { headers: { 'Authorization': adminToken } });
+            const data = await res.json();
+            questionsList.innerHTML = '';
             let qs = data.data || [];
-            if (searchTerm) {
-                const term = searchTerm.toLowerCase();
-                qs = qs.filter(q => q.title.toLowerCase().includes(term) || q.author.toLowerCase().includes(term) || q.text.toLowerCase().includes(term));
-            }
-            if (qs.length) {
-                qs.forEach(q => {
-                    const qDiv = document.createElement('div');
-                    qDiv.className = 'comment-item';
-                    qDiv.innerHTML = `
-                        <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <div>
-                                <div class="question-title" style="font-weight:bold;">${escapeHtml(q.title)}</div>
-                                <div class="comment-author">${escapeHtml(q.author)}</div>
-                                <div class="comment-date">${new Date(q.created_at).toLocaleDateString()}</div>
-                                <div class="comment-text" style="margin-top:5px;">${escapeHtml(q.text)}</div>
-                            </div>
-                            <button onclick="deleteQuestion(${q.id})" class="ban-btn" style="font-family: 'Rye', cursive;">Apagar</button>
-                        </div>
-                        <div style="margin-left:20px; margin-top:10px;">
-                    `;
-                    if (q.replies && q.replies.length) {
-                        q.replies.forEach(r => {
-                            qDiv.innerHTML += `
-                                <div style="display:flex; justify-content:space-between; align-items:start; margin-top:5px;">
-                                    <div>
-                                        <div class="comment-author">${escapeHtml(r.author)}</div>
-                                        <div class="comment-text">${escapeHtml(r.text)}</div>
-                                        <div class="comment-date">${new Date(r.created_at).toLocaleDateString()}</div>
-                                    </div>
-                                    <button onclick="deleteReply(${q.id}, ${r.id})" class="ban-btn" style="font-family: 'Rye', cursive; font-size:0.8rem;">Excluir</button>
-                                </div>
-                            `;
-                        });
-                    }
-                    qDiv.innerHTML += '</div>';
-                    list.appendChild(qDiv);
-                });
-            } else {
-                list.innerHTML = '<p style="color: var(--text-muted);">Nenhuma dúvida registrada.</p>';
-            }
-        } catch (error) { console.error(error); }
-    };
 
-    const questionsSearchInput = document.getElementById('search-questions');
-    if (questionsSearchInput) {
-        questionsSearchInput.addEventListener('input', () => {
-            loadAdminQuestions(questionsSearchInput.value);
-        });
-    }
+            qs.forEach(q => {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'card';
+                qDiv.style.marginBottom = "20px";
+                qDiv.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div>
+                            <h4 style="color: var(--gold); margin-bottom:5px;">${escapeHtml(q.title)}</h4>
+                            <p style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 10px;">${escapeHtml(q.text)}</p>
+                            <small style="color: var(--text-muted);">Por ${escapeHtml(q.author)} em ${new Date(q.created_at).toLocaleDateString()}</small>
+                        </div>
+                        <button onclick="deleteQuestion(${q.id})" class="btn btn-outline" style="border-color: #ff4c4c; color: #ff4c4c; padding: 4px 10px; font-size: 0.8rem;">Excluir</button>
+                    </div>
+                `;
+                questionsList.appendChild(qDiv);
+            });
+        } catch (err) { console.error(err); }
+    };
 
     window.deleteQuestion = async (id) => {
-        if (!confirm("Tem certeza que deseja apagar esta dúvida e todas as respostas?")) return;
+        if (!confirm("Excluir esta dúvida permanentemente?")) return;
         try {
-            const res = await fetch(`/api/admin/questions/${id}`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }
-            });
-            if (res.ok) { loadAdminQuestions(); loadStats(); }
-            else alert("Falha ao deletar.");
-        } catch (err) { alert("Erro de conexão."); }
+            await fetch(`/api/admin/questions/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } });
+            loadAdminQuestions(); loadStats();
+        } catch (err) { console.error(err); }
     };
-
-    window.deleteReply = async (qid, rid) => {
-        if (!confirm("Deseja realmente apagar esta resposta?")) return;
-        try {
-            const res = await fetch(`/api/admin/questions/${qid}/replies/${rid}`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }
-            });
-            if (res.ok) { loadAdminQuestions(); loadStats(); }
-            else alert("Falha ao deletar.");
-        } catch (err) { alert("Erro de conexão."); }
-    };
-
 
     // === SUBMISSIONS TAB ===
-    const loadAdminSubmissions = async (searchTerm = '') => {
+    const loadAdminSubmissions = async () => {
         try {
-            const response = await fetch('/api/admin/submissions', {
-                headers: { 'Authorization': adminToken }
-            });
-            const data = await response.json();
-            const tableBody = document.getElementById("submissions-table-body");
-            tableBody.innerHTML = '';
-            let subs = data.data || [];
-            if (searchTerm) {
-                const term = searchTerm.toLowerCase();
-                subs = subs.filter(s => s.username.toLowerCase().includes(term) || s.title.toLowerCase().includes(term));
-            }
-            if (subs.length) {
-                subs.forEach(sub => {
-                    const date = new Date(sub.created_at).toLocaleDateString('pt-BR');
-                    const isApproved = sub.is_approved === true;
-                    tableBody.innerHTML += `
-                        <tr>
-                            <td>${date}</td>
-                            <td>${escapeHtml(sub.username)}</td>
-                            <td>${escapeHtml(sub.title)}</td>
-                            <td><span style="color: #28a745;">🛡️ ${escapeHtml(sub.security_status || 'Pendente')}</span></td>
-                            <td>
-                                <a href="${escapeHtml(sub.link)}" target="_blank" style="color: var(--primary-red); font-weight: bold; margin-right: 10px;">📥 Baixar</a>
-                                <button class="${isApproved ? 'unban-btn' : 'submit-button'}" 
-                                        style="font-size: 0.8rem; padding: 5px 10px;"
-                                        onclick="toggleModApproval(${sub.id}, ${!isApproved})">
-                                    ${isApproved ? 'Desaprovar' : 'Aprovar'}
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } else {
-                tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Nenhum mod encontrado.</td></tr>';
-            }
-        } catch (error) { console.error(error); }
-    };
-
-    const submissionsSearchInput = document.getElementById('search-submissions');
-    if (submissionsSearchInput) {
-        submissionsSearchInput.addEventListener('input', () => {
-            loadAdminSubmissions(submissionsSearchInput.value);
-        });
-    }
-
-    // === Export CSV Feature ===
-    const downloadCSV = (csv, filename) => {
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', filename);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    const toCSV = (rows) => {
-        if (!rows.length) return '';
-        const headers = Object.keys(rows[0]);
-        const lines = [headers.join(',')];
-        rows.forEach(r => {
-            const values = headers.map(h => {
-                let val = r[h] === null || r[h] === undefined ? '' : String(r[h]);
-                if (val.includes(',') || val.includes('"')) {
-                    val = '"' + val.replace(/"/g, '""') + '"';
-                }
-                return val;
-            });
-            lines.push(values.join(','));
-        });
-        return lines.join('\n');
-    };
-
-    const exportTable = async (type) => {
-        let endpoint = '';
-        switch(type) {
-            case 'comments': endpoint = '/api/comments'; break;
-            case 'users': endpoint = '/api/admin/users'; break;
-            case 'logs': endpoint = '/api/admin/logs'; break;
-            case 'feedback': endpoint = '/api/admin/feedback'; break;
-            case 'submissions': endpoint = '/api/admin/submissions'; break;
-            case 'questions': endpoint = '/api/admin/questions'; break;
-        }
-        if (!endpoint) return;
-        try {
-            const res = await fetch(endpoint, { headers: { 'Authorization': adminToken } });
+            const res = await fetch('/api/admin/submissions', { headers: { 'Authorization': adminToken } });
             const data = await res.json();
-            let rows = data.data || [];
-            const csv = toCSV(rows);
-            downloadCSV(csv, type + '.csv');
-        } catch (err) {
-            console.error('Erro exportando tabela', type, err);
-            alert('Falha ao exportar ' + type);
-        }
+            const container = document.getElementById("submissions-list");
+            container.innerHTML = '';
+            let subs = data.data || [];
+
+            subs.forEach(sub => {
+                const isApproved = sub.is_approved === true;
+                const card = document.createElement('div');
+                card.className = 'glass-card';
+                card.style.marginBottom = "20px";
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h4 style="color: var(--primary-red); margin-bottom:5px;">${escapeHtml(sub.title)}</h4>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom:10px;">Enviado por: <strong>${escapeHtml(sub.username)}</strong></p>
+                            <a href="${escapeHtml(sub.link)}" target="_blank" class="btn btn-outline" style="padding: 4px 12px; font-size: 0.8rem;">📥 Baixar Arquivo</a>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="margin-bottom: 10px;"><span style="color: #28a745; font-size: 0.8rem;">🛡️ Verificado</span></div>
+                            <button class="btn ${isApproved ? 'btn-outline' : 'btn-primary'}" 
+                                    style="padding: 6px 15px; font-size: 0.85rem;" 
+                                    onclick="toggleModApproval(${sub.id}, ${!isApproved})">
+                                ${isApproved ? 'Remover Galeria' : 'Aprovar na Galeria'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        } catch (err) { console.error(err); }
     };
-    document.querySelectorAll('.export-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tab = btn.getAttribute('data-table');
-            exportTable(tab);
-        });
-    });
 
     window.toggleModApproval = async (id, status) => {
-        const action = status ? "aprovar" : "desaprovar";
-        if (!confirm(`Deseja realmente ${action} este mod para a galeria pública?`)) return;
-
         try {
-            const res = await fetch(`/api/admin/submissions/${id}/approve`, {
+            await fetch(`/api/admin/submissions/${id}/approve`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': adminToken
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
                 body: JSON.stringify({ is_approved: status })
             });
-            if (res.ok) { loadAdminSubmissions(); loadStats(); }
-            else alert("Falha na operação.");
-        } catch (err) { alert("Erro de conexão."); }
+            loadAdminSubmissions(); loadStats();
+        } catch (err) { console.error(err); }
     };
 });
