@@ -5,8 +5,16 @@ const path = require('path');
 const multer = require('multer');
 const axios = require('axios');
 const FormData = require('form-data');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
+
+// SUPABASE SECRETS
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ ERRO: SUPABASE_URL ou SUPABASE_KEY não configuradas no sistema de variáveis do Netlify!');
+}
 
 // simple sanitizer to strip potentially dangerous characters
 const sanitize = (str) => {
