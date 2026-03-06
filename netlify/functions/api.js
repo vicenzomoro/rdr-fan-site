@@ -80,8 +80,12 @@ app.post('/auth/register', async (req, res) => {
         const { error } = await supabase.from('users').insert([{ username, password: hashed, is_banned: false }]);
 
         if (error) {
-            console.error("Erro ao inserir usuário:", error);
-            return res.status(400).json({ error: "Usuário já existe ou erro no banco." });
+            console.error("Erro detalhado do Supabase:", error);
+            return res.status(400).json({
+                error: "Erro no Banco de Dados",
+                details: error.message,
+                hint: error.hint || "Verifique se a tabela 'users' existe."
+            });
         }
 
         res.json({ message: "registered" });
