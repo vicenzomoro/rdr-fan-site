@@ -15,14 +15,47 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const MASTER_KEY = (process.env.DEV_MASTER_KEY || "DEV_XERIFE_1899").trim();
 
-// Middleware de Autenticação Admin Profissional
+// Helper: Extrair nome do arquivo da URL publica do Supabase Storage
+const extractStorageFileName = (url) => {
+    if (!url) return null;
+    try {
+        const parts = url.split('/storage/v1/object/public/mods/');
+        return parts.length > 1 ? decodeURIComponent(parts[1]) : null;
+    } catch (e) { return null; }
+};
+
+// Helper: Deletar arquivo do Supabase Storage
+const deleteStorageFile = async (link) => {
+    const fileName = extractStorageFileName(link);
+    if (fileName) {
+        try {
+            await supabase.storage.from('mods').remove([fileName]);
+            console.log('Arquivo deletado do storage:', fileName);
+        } catch (e) { console.error('Erro ao deletar arquivo:', e); }
+    }
+};
+
+// Helper: Criar notificacao para um usuario
+const createNotification = async (username, message, type) => {
+    type = type || 'info';
+    try {
+        await supabase.from('notifications').insert([{
+            username,
+            message,
+            type,
+            is_read: false,
+            created_at: new Date().toISOString()
+        }]);
+    } catch (e) { console.error('Erro ao criar notificacao:', e); }
+};
+
+// Middleware de Autenticacao Admin
 const adminAuth = async (req, res, next) => {
     const token = req.headers.authorization || req.body.token;
     const isAuthorized = token === MASTER_KEY || (supabaseKey && token === supabaseKey);
 
     if (isAuthorized) return next();
 
-    // Log de Segurança para tentativas de invasão
     try {
         await supabase.from('security_logs').insert([{
             ip_address: req.headers['x-forwarded-for'] || req.ip || 'desconhecido',
@@ -30,12 +63,12 @@ const adminAuth = async (req, res, next) => {
             password_attempt: token ? (token.length > 30 ? token.substring(0, 30) + "..." : token) : "vazio",
             created_at: new Date().toISOString()
         }]);
-    } catch (e) { console.error("Erro no Log de Segurança:", e); }
+    } catch (e) { console.error("Erro no Log de Seguranca:", e); }
 
-    res.status(401).json({ error: "Acesso negado. O Xerife está de olho!" });
+    res.status(401).json({ error: "Acesso negado. O Xerife esta de olho!" });
 };
 
-// --- ROTAS PÚBLICAS ---
+// --- ROTAS PUBLICAS ---
 app.get('/api/ping', (req, res) => res.json({ message: "Servidor Ativo!", status: "ok" }));
 
 app.post('/api/auth/register', async (req, res) => {
@@ -55,11 +88,11 @@ app.post('/api/auth/login', async (req, res) => {
         if (error) throw error;
         if (data && data.length > 0) {
             const user = data[0];
-            if (user.is_banned) return res.status(403).json({ error: "Você foi banido pelo Xerife!" });
+            if (user.is_banned) return res.status(403).json({ error: "Voce foi banido pelo Xerife!" });
             const match = await bcrypt.compare(password, user.password);
             if (!match) return res.status(401).json({ error: 'Senha incorreta.' });
             res.json({ message: "logged_in", username: user.username });
-        } else { res.status(401).json({ error: 'Usuário não encontrado.' }); }
+        } else { res.status(401).json({ error: 'Usuario nao encontrado.' }); }
     } catch (err) { res.status(500).json({ error: "Erro interno", details: err.message }); }
 });
 
@@ -95,7 +128,7 @@ app.get('/api/mods', async (req, res) => {
 
 app.post('/api/feedback', async (req, res) => {
     const { username, message } = req.body;
-    await supabase.from('feedback').insert([{ username: username || "Anônimo", message }]);
+    await supabase.from('feedback').insert([{ username: username || "Anonimo", message }]);
     res.json({ message: 'sucesso' });
 });
 
@@ -104,7 +137,7 @@ app.post('/api/mods', upload.single('file'), async (req, res) => {
     const file = req.file;
 
     try {
-        let publicUrl = "https://www.nexusmods.com"; // Fallback ou se não tiver arquivo
+        let publicUrl = "";
 
         if (file) {
             const fileName = `${Date.now()}_${file.originalname}`;
@@ -117,9 +150,7 @@ app.post('/api/mods', upload.single('file'), async (req, res) => {
 
             if (uploadError) {
                 console.error("Storage Error:", uploadError);
-                // Se o bucket não existe, vamos avisar mas continuar sem o arquivo se quiserem
-                // Ou apenas falhar para o usuário criar o bucket
-                return res.status(500).json({ error: "Erro ao subir arquivo. O Xerife precisa de um balde (Storage Bucket) chamado 'mods'." });
+                return res.status(500).json({ error: "Erro ao subir arquivo. Verifique se o bucket 'mods' existe no Supabase Storage." });
             }
 
             const { data: { publicUrl: url } } = supabase.storage
@@ -132,18 +163,42 @@ app.post('/api/mods', upload.single('file'), async (req, res) => {
         const { error } = await supabase.from('mod_submissions').insert([{
             title,
             description,
-            username,
+            username: username || 'Anonimo',
             link: publicUrl,
             is_approved: false
         }]);
 
         if (error) throw error;
+
+        await createNotification(username || 'Anonimo', 'Seu mod "' + title + '" foi enviado e esta aguardando aprovacao do Xerife!', 'info');
         res.json({ message: "submitted" });
 
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Erro ao salvar solicitação.", details: err.message });
+        res.status(500).json({ error: "Erro ao salvar solicitacao.", details: err.message });
     }
+});
+
+// --- ROTAS DE NOTIFICACOES ---
+
+app.get('/api/notifications/:username', async (req, res) => {
+    const { data } = await supabase.from('notifications').select('*')
+        .eq('username', req.params.username)
+        .order('created_at', { ascending: false })
+        .limit(20);
+    res.json({ data: data || [] });
+});
+
+app.post('/api/notifications/:id/read', async (req, res) => {
+    await supabase.from('notifications').update({ is_read: true }).eq('id', req.params.id);
+    res.json({ message: "ok" });
+});
+
+app.post('/api/notifications/read-all', async (req, res) => {
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ error: "Username required" });
+    await supabase.from('notifications').update({ is_read: true }).eq('username', username).eq('is_read', false);
+    res.json({ message: "ok" });
 });
 
 // --- ROTAS ADMIN ---
@@ -190,11 +245,49 @@ app.get('/api/admin/submissions', adminAuth, async (req, res) => {
     res.json({ data: data || [] });
 });
 
+// Aprovar/Desativar mod — ao desativar, deleta arquivo do storage
 app.post('/api/admin/mods/:id/approve', adminAuth, async (req, res) => {
     const { approved } = req.body;
-    const { error } = await supabase.from('mod_submissions').update({ is_approved: approved }).eq('id', req.params.id);
-    if (error) return res.status(400).json({ error: error.message });
-    res.json({ message: "success" });
+    const modId = req.params.id;
+
+    try {
+        if (!approved) {
+            const { data: mod } = await supabase.from('mod_submissions').select('link, username, title').eq('id', modId).single();
+            if (mod) {
+                await deleteStorageFile(mod.link);
+                await createNotification(mod.username, 'Seu mod "' + mod.title + '" foi desativado pelo Xerife.', 'warning');
+            }
+        } else {
+            const { data: mod } = await supabase.from('mod_submissions').select('username, title').eq('id', modId).single();
+            if (mod) {
+                await createNotification(mod.username, 'Seu mod "' + mod.title + '" foi aprovado pelo Xerife! Agora esta visivel na galeria.', 'success');
+            }
+        }
+
+        const { error } = await supabase.from('mod_submissions').update({ is_approved: approved }).eq('id', modId);
+        if (error) throw error;
+        res.json({ message: "success" });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// Recusar mod — deleta do banco E do storage
+app.delete('/api/admin/mods/:id', adminAuth, async (req, res) => {
+    const modId = req.params.id;
+    try {
+        const { data: mod } = await supabase.from('mod_submissions').select('link, username, title').eq('id', modId).single();
+        if (mod) {
+            await deleteStorageFile(mod.link);
+            await createNotification(mod.username, 'Seu mod "' + mod.title + '" foi recusado pelo Xerife. Tente novamente com melhorias!', 'error');
+        }
+
+        const { error } = await supabase.from('mod_submissions').delete().eq('id', modId);
+        if (error) throw error;
+        res.json({ message: "deleted" });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
 app.get('/api/admin/logs', adminAuth, async (req, res) => {

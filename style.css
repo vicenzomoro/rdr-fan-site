@@ -583,3 +583,226 @@ textarea:focus {
     border-radius: 8px;
     cursor: pointer;
 }
+
+/* === NOTIFICATION SYSTEM === */
+.notif-wrapper {
+    position: relative;
+    margin-left: 15px;
+}
+
+.notif-bell {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.4rem;
+    position: relative;
+    color: var(--gold);
+    transition: var(--transition);
+    padding: 5px;
+}
+
+.notif-bell:hover {
+    transform: scale(1.15);
+}
+
+.notif-badge {
+    position: absolute;
+    top: -5px;
+    right: -8px;
+    background: var(--primary-red);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(204, 0, 0, 0.5);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.notif-dropdown {
+    display: none;
+    position: absolute;
+    top: 45px;
+    right: -20px;
+    width: 360px;
+    max-height: 420px;
+    overflow-y: auto;
+    background: var(--bg-surface);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
+    z-index: 999;
+}
+
+.notif-dropdown.active {
+    display: block;
+    animation: slideUp 0.3s ease;
+}
+
+.notif-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notif-header h4 {
+    color: var(--gold);
+    margin: 0;
+    font-family: 'Rye', cursive;
+    font-size: 0.95rem;
+}
+
+.notif-mark-read {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.8rem;
+    text-decoration: underline;
+    transition: var(--transition);
+}
+
+.notif-mark-read:hover {
+    color: var(--primary-red);
+}
+
+.notif-item {
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.notif-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.notif-item.unread {
+    border-left: 3px solid var(--primary-red);
+    background: rgba(204, 0, 0, 0.05);
+}
+
+.notif-item.type-success {
+    border-left-color: #28a745;
+}
+
+.notif-item.type-warning {
+    border-left-color: #ffc107;
+}
+
+.notif-item.type-error {
+    border-left-color: #ff4c4c;
+}
+
+.notif-item.type-info {
+    border-left-color: var(--gold);
+}
+
+.notif-item .notif-msg {
+    font-size: 0.88rem;
+    color: var(--text-main);
+    line-height: 1.5;
+    margin-bottom: 4px;
+}
+
+.notif-item .notif-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.notif-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 30px;
+    font-size: 0.9rem;
+}
+
+/* === TOAST NOTIFICATIONS === */
+.toast-container {
+    position: fixed;
+    top: 90px;
+    right: 20px;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast {
+    padding: 14px 24px;
+    border-radius: 12px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    animation: toastIn 0.4s ease, toastOut 0.4s ease 3.6s forwards;
+    pointer-events: auto;
+    max-width: 350px;
+    border-left: 4px solid transparent;
+    backdrop-filter: blur(10px);
+}
+
+.toast-success {
+    background: rgba(40, 167, 69, 0.9);
+    border-left-color: #1a9c3e;
+}
+
+.toast-error {
+    background: rgba(255, 76, 76, 0.9);
+    border-left-color: #cc0000;
+}
+
+.toast-info {
+    background: rgba(212, 175, 55, 0.9);
+    border-left-color: #b8860b;
+    color: #1a1a1a;
+}
+
+.toast-warning {
+    background: rgba(255, 193, 7, 0.9);
+    border-left-color: #d4a106;
+    color: #1a1a1a;
+}
+
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes toastOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+}

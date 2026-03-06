@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function loadComments() {
-        const data = await fetchAdmin('/api/comments'); // Pública
+        const data = await fetchAdmin('/api/comments');
         const list = document.getElementById('list-comments');
         list.innerHTML = (data.data || []).map(c => `
             <div class="stat-card" style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -139,13 +139,15 @@ document.addEventListener("DOMContentLoaded", () => {
             <tr>
                 <td>${escapeHtml(m.title)}</td>
                 <td>${escapeHtml(m.username)}</td>
+                <td>${escapeHtml(m.description || '').substring(0, 60)}${(m.description || '').length > 60 ? '...' : ''}</td>
                 <td><span class="badge ${m.is_approved ? 'badge-success' : 'badge-warning'}">${m.is_approved ? 'Ativo' : 'Pendente'}</span></td>
                 <td>
-                    <div style="display:flex; gap:10px;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button onclick="toggleMod(${m.id}, ${!m.is_approved})" class="action-btn ${m.is_approved ? 'btn-reject' : 'btn-approve'}">
                             ${m.is_approved ? 'Desativar' : 'Aprovar'}
                         </button>
-                        <a href="${m.link}" target="_blank" class="action-btn" style="background:#444; color:white; text-decoration:none;">Ver</a>
+                        <button onclick="rejectMod(${m.id})" class="action-btn btn-delete">Recusar</button>
+                        ${m.link ? `<a href="${m.link}" target="_blank" class="action-btn" style="background:#444; color:white; text-decoration:none;">Ver</a>` : ''}
                     </div>
                 </td>
             </tr>
@@ -172,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${new Date(l.created_at).toLocaleString()}</td>
                 <td><code style="color:var(--admin-gold)">${escapeHtml(l.ip_address)}</code></td>
                 <td><code style="color:#ff6b6b">${escapeHtml(l.password_attempt)}</code></td>
-                <td style="font-size:0.8rem; color:var(--admin-muted)">${escapeHtml(l.device.substring(0, 50))}...</td>
+                <td style="font-size:0.8rem; color:var(--admin-muted)">${escapeHtml((l.device || '').substring(0, 50))}...</td>
             </tr>
         `).join('');
     }
@@ -188,6 +190,8 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     window.toggleMod = async (id, approved) => {
+        const action = approved ? "Aprovar" : "Desativar";
+        if (!confirm(`${action} este mod?`)) return;
         const res = await fetch(`/api/admin/mods/${id}/approve`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
@@ -196,14 +200,23 @@ document.addEventListener("DOMContentLoaded", () => {
         if (res.ok) loadMods();
     };
 
+    window.rejectMod = async (id) => {
+        if (!confirm("Recusar e DELETAR este mod permanentemente? O arquivo sera removido do storage.")) return;
+        const res = await fetch(`/api/admin/mods/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': adminToken }
+        });
+        if (res.ok) loadMods();
+    };
+
     window.deleteC = async (id) => {
-        if (!confirm("Confirmar a eliminação deste relato?")) return;
+        if (!confirm("Confirmar a eliminacao deste relato?")) return;
         const res = await fetch(`/api/admin/comments/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } });
         if (res.ok) loadComments();
     };
 
     window.deleteQ = async (id) => {
-        if (!confirm("Ignorar esta dúvida permanentemente?")) return;
+        if (!confirm("Ignorar esta duvida permanentemente?")) return;
         const res = await fetch(`/api/admin/questions/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } });
         if (res.ok) loadQuestions();
     };

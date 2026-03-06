@@ -4,14 +4,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const navbar = document.querySelector(".navbar");
 
     const handleScroll = () => {
-        // Navbar transparency
         if (window.scrollY > 50) {
             navbar.classList.add("scrolled");
         } else {
             navbar.classList.remove("scrolled");
         }
 
-        // Section reveals
         reveals.forEach((reveal) => {
             const windowHeight = window.innerHeight;
             const revealTop = reveal.getBoundingClientRect().top;
@@ -35,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (currentUser) {
         if (loginBtn) {
-            loginBtn.innerHTML = `<span>Sair (${currentUser})</span>`;
+            loginBtn.innerHTML = '<span>Sair (' + currentUser + ')</span>';
             loginBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 localStorage.removeItem('currentUser');
@@ -48,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     } else {
         if (commentInput) {
-            commentInput.placeholder = "Faça login para comentar...";
+            commentInput.placeholder = "Faca login para comentar...";
             commentInput.disabled = true;
         }
         if (authorInput) authorInput.disabled = true;
@@ -61,6 +59,25 @@ document.addEventListener("DOMContentLoaded", () => {
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
             return map[s];
         });
+    };
+
+    // === TOAST NOTIFICATION SYSTEM ===
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+
+    window.showToast = (message, type) => {
+        type = type || 'info';
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-' + type;
+        toast.textContent = message;
+        toastContainer.appendChild(toast);
+        setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 4000);
     };
 
     // === Comments System ===
@@ -80,13 +97,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 comments.forEach(c => {
                     const card = document.createElement("div");
                     card.className = "glass-card comment-card reveal active";
-                    card.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                            <strong style="color:var(--gold); font-size:1.1rem;">${escapeHtml(c.author)}</strong>
-                            <small style="color:var(--text-muted);">${escapeHtml(c.date)}</small>
-                        </div>
-                        <p style="color:var(--text-main); line-height:1.6;">${escapeHtml(c.text)}</p>
-                    `;
+                    card.innerHTML = '<div style="display:flex; justify-content:space-between; margin-bottom:10px;">' +
+                        '<strong style="color:var(--gold); font-size:1.1rem;">' + escapeHtml(c.author) + '</strong>' +
+                        '<small style="color:var(--text-muted);">' + escapeHtml(c.date) + '</small>' +
+                        '</div>' +
+                        '<p style="color:var(--text-main); line-height:1.6;">' + escapeHtml(c.text) + '</p>';
                     commentsList.appendChild(card);
                 });
             } else {
@@ -100,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (commentForm) {
         commentForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            if (!currentUser) return alert("Você precisa estar logado.");
+            if (!currentUser) return alert("Voce precisa estar logado.");
 
             const text = commentInput.value.trim();
             if (!text) return;
@@ -114,15 +129,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 const res = await fetch('/api/comments', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ author: currentUser, text, date: new Date().toLocaleDateString() })
+                    body: JSON.stringify({ author: currentUser, text: text, date: new Date().toLocaleDateString() })
                 });
 
                 if (res.ok) {
                     commentInput.value = "";
                     loadComments();
+                    showToast("Relato publicado com sucesso!", "success");
                 }
             } catch (err) {
                 console.error(err);
+                showToast("Erro ao publicar relato.", "error");
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
@@ -149,31 +166,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     const card = document.createElement("div");
                     card.className = "glass-card reveal active";
                     card.style.marginBottom = "20px";
-                    card.innerHTML = `
-                        <h3 style="color:var(--primary-red); margin-bottom:10px; font-family:'Rye';">${escapeHtml(q.title)}</h3>
-                        <p style="margin-bottom:15px; color:var(--text-main);">${escapeHtml(q.text)}</p>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <small style="color:var(--text-muted);">Por ${escapeHtml(q.author)} | ${escapeHtml(q.date)}</small>
-                            ${currentUser ? `<button class="btn btn-outline" style="padding:5px 15px; font-size:0.8rem;" onclick="showReplyForm(${q.id}, this)">Responder</button>` : ''}
-                        </div>
-                        <div class="replies" style="margin-top:15px; border-left: 2px solid var(--primary-red); padding-left:15px;"></div>
-                    `;
-
-                    const repliesDiv = card.querySelector('.replies');
-                    if (q.replies && q.replies.length > 0) {
-                        q.replies.forEach(r => {
-                            repliesDiv.innerHTML += `
-                                <div style="margin-bottom:10px;">
-                                    <strong>${escapeHtml(r.author)}:</strong> ${escapeHtml(r.text)}
-                                    <br><small style="color:var(--text-muted); font-size:0.75rem;">${escapeHtml(r.date)}</small>
-                                </div>
-                            `;
-                        });
-                    }
+                    card.innerHTML = '<h3 style="color:var(--primary-red); margin-bottom:10px; font-family:\'Rye\';">' + escapeHtml(q.title) + '</h3>' +
+                        '<p style="margin-bottom:15px; color:var(--text-main);">' + escapeHtml(q.text) + '</p>' +
+                        '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+                        '<small style="color:var(--text-muted);">Por ' + escapeHtml(q.author) + ' | ' + escapeHtml(q.date) + '</small>' +
+                        '</div>';
                     questionsList.appendChild(card);
                 });
             } else {
-                questionsList.innerHTML = '<p style="text-align:center; color:var(--text-muted);">Procure o Xerife ou poste sua dúvida.</p>';
+                questionsList.innerHTML = '<p style="text-align:center; color:var(--text-muted);">Procure o Xerife ou poste sua duvida.</p>';
             }
         } catch (err) { console.error(err); }
     };
@@ -189,11 +190,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 const res = await fetch('/api/questions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ author: currentUser, title, text, date: new Date().toLocaleDateString() })
+                    body: JSON.stringify({ author: currentUser, title: title, text: text, date: new Date().toLocaleDateString() })
                 });
                 if (res.ok) {
                     questionForm.reset();
                     loadQuestions();
+                    showToast("Duvida publicada com sucesso!", "success");
                 }
             } catch (err) { console.error(err); }
         });
@@ -205,10 +207,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const modsGallery = document.getElementById("mods-gallery");
     const modSearchInput = document.getElementById("mod-search");
 
-    const fetchMods = async (search = '') => {
+    const fetchMods = async (search) => {
+        search = search || '';
         if (!modsGallery) return;
         try {
-            const res = await fetch(`/api/mods?search=${encodeURIComponent(search)}`);
+            const res = await fetch('/api/mods?search=' + encodeURIComponent(search));
             const data = await res.json();
             modsGallery.innerHTML = '';
             const mods = data.data || [];
@@ -217,15 +220,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 mods.forEach(mod => {
                     const card = document.createElement("div");
                     card.className = "glass-card reveal active";
-                    card.innerHTML = `
-                        <div class="mod-badge">MOD</div>
-                        <h3 style="color:var(--gold); margin-bottom:10px;">${escapeHtml(mod.title)}</h3>
-                        <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:20px;">${escapeHtml(mod.description || 'Sem descrição.')}</p>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:0.8rem; color:var(--text-main);">👤 ${escapeHtml(mod.username)}</span>
-                            <a href="${escapeHtml(mod.link)}" target="_blank" class="btn btn-primary" style="padding:6px 15px; font-size:0.8rem;">BAIXAR</a>
-                        </div>
-                    `;
+                    card.innerHTML = '<div class="mod-badge">MOD</div>' +
+                        '<h3 style="color:var(--gold); margin-bottom:10px;">' + escapeHtml(mod.title) + '</h3>' +
+                        '<p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:20px;">' + escapeHtml(mod.description || 'Sem descricao.') + '</p>' +
+                        '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+                        '<span style="font-size:0.8rem; color:var(--text-main);">👤 ' + escapeHtml(mod.username) + '</span>' +
+                        '<a href="' + escapeHtml(mod.link) + '" target="_blank" class="btn btn-primary" style="padding:6px 15px; font-size:0.8rem;">BAIXAR</a>' +
+                        '</div>';
                     modsGallery.appendChild(card);
                 });
             } else {
@@ -258,10 +259,10 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.innerHTML = 'Enviando... Aguarde o Xerife...';
             btn.disabled = true;
 
-            const formData = new FormData();
+            var formData = new FormData();
             formData.append('title', title);
             formData.append('description', description);
-            formData.append('username', currentUser || "Anônimo");
+            formData.append('username', currentUser || "Anonimo");
             formData.append('file', fileInput.files[0]);
 
             try {
@@ -274,23 +275,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (res.ok) {
                     modForm.reset();
-                    status.innerText = "Mod enviado para o escritório do Xerife! Aguarde aprovação.";
+                    showToast("Mod enviado para o escritorio do Xerife! Aguarde aprovacao.", "success");
+                    status.innerText = "Mod enviado com sucesso!";
                     status.style.color = "#28a745";
                     status.style.display = "block";
                 } else {
+                    showToast("Erro: " + (result.error || "Tente novamente."), "error");
                     status.innerText = "Erro: " + (result.error || "Tente novamente.");
                     status.style.color = "var(--primary-red)";
                     status.style.display = "block";
                 }
             } catch (err) {
                 console.error(err);
-                status.innerText = "O telégrafo falhou. Verifique sua conexão.";
+                showToast("O telegrafo falhou. Verifique sua conexao.", "error");
+                status.innerText = "Erro de conexao.";
                 status.style.color = "var(--primary-red)";
                 status.style.display = "block";
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                setTimeout(() => { status.style.display = "none"; }, 5000);
+                setTimeout(function () { status.style.display = "none"; }, 5000);
             }
         });
     }
@@ -308,14 +312,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 const res = await fetch('/api/feedback', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: currentUser || "Anônimo", message })
+                    body: JSON.stringify({ username: currentUser || "Anonimo", message: message })
                 });
                 if (res.ok) {
                     feedbackForm.reset();
+                    showToast("Feedback enviado com sucesso!", "success");
                     status.innerText = "Feedback enviado com sucesso!";
                     status.style.color = "#28a745";
                     status.style.display = "block";
-                    setTimeout(() => status.style.display = "none", 3000);
+                    setTimeout(function () { status.style.display = "none"; }, 3000);
                 }
             } catch (err) { console.error(err); }
         });
@@ -342,8 +347,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const addMessage = (text, type) => {
         const msg = document.createElement("div");
-        msg.className = `message ${type}`;
-        msg.innerHTML = `<div class="content">${text}</div>`;
+        msg.className = "message " + type;
+        msg.innerHTML = '<div class="content">' + text + '</div>';
         chatMessages.appendChild(msg);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     };
@@ -355,10 +360,9 @@ document.addEventListener("DOMContentLoaded", () => {
         addMessage(text, 'user');
         chatInput.value = "";
 
-        // Thinking...
         const typing = document.createElement("div");
         typing.className = "message ai typing";
-        typing.innerHTML = '<div class="content">Dutch está pensando...</div>';
+        typing.innerHTML = '<div class="content">Dutch esta pensando...</div>';
         chatMessages.appendChild(typing);
 
         try {
@@ -372,12 +376,128 @@ document.addEventListener("DOMContentLoaded", () => {
             addMessage(data.response, 'ai');
         } catch (err) {
             chatMessages.removeChild(typing);
-            addMessage("O telégrafo falhou, tente novamente!", 'ai');
+            addMessage("O telegrafo falhou, tente novamente!", 'ai');
         }
     };
 
     if (sendBtn) {
         sendBtn.addEventListener("click", handleChat);
         chatInput.addEventListener("keypress", (e) => { if (e.key === 'Enter') handleChat(); });
+    }
+
+    // === NOTIFICATION BELL SYSTEM ===
+    if (currentUser) {
+        const navElement = document.querySelector('.navbar nav');
+        if (navElement) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'notif-wrapper';
+            wrapper.style.display = 'inline-flex';
+            wrapper.style.alignItems = 'center';
+            wrapper.innerHTML = '<button class="notif-bell" id="notif-bell">' +
+                '🔔' +
+                '<span class="notif-badge" id="notif-badge" style="display:none;">0</span>' +
+                '</button>' +
+                '<div class="notif-dropdown" id="notif-dropdown">' +
+                '<div class="notif-header">' +
+                '<h4>Notificações</h4>' +
+                '<button class="notif-mark-read" id="mark-all-read">Marcar como lidas</button>' +
+                '</div>' +
+                '<div id="notif-list">' +
+                '<p class="notif-empty">Nenhuma notificação, parceiro.</p>' +
+                '</div>' +
+                '</div>';
+            navElement.parentNode.insertBefore(wrapper, navElement.nextSibling);
+
+            var bell = document.getElementById('notif-bell');
+            var dropdown = document.getElementById('notif-dropdown');
+            var badge = document.getElementById('notif-badge');
+            var notifList = document.getElementById('notif-list');
+
+            // Toggle dropdown
+            bell.addEventListener('click', function (e) {
+                e.stopPropagation();
+                dropdown.classList.toggle('active');
+                if (dropdown.classList.contains('active')) {
+                    loadNotifications();
+                }
+            });
+
+            // Close on outside click
+            document.addEventListener('click', function (e) {
+                if (!wrapper.contains(e.target)) {
+                    dropdown.classList.remove('active');
+                }
+            });
+
+            // Mark all as read
+            document.getElementById('mark-all-read').addEventListener('click', async function () {
+                await fetch('/api/notifications/read-all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUser })
+                });
+                loadNotifications();
+                showToast('Todas as notificações marcadas como lidas!', 'success');
+            });
+
+            var timeAgo = function (dateStr) {
+                var diff = Date.now() - new Date(dateStr).getTime();
+                var mins = Math.floor(diff / 60000);
+                if (mins < 1) return 'agora';
+                if (mins < 60) return mins + 'min';
+                var hours = Math.floor(mins / 60);
+                if (hours < 24) return hours + 'h';
+                var days = Math.floor(hours / 24);
+                return days + 'd';
+            };
+
+            var loadNotifications = async function () {
+                try {
+                    var res = await fetch('/api/notifications/' + encodeURIComponent(currentUser));
+                    var data = await res.json();
+                    var notifications = data.data || [];
+                    var unread = notifications.filter(function (n) { return !n.is_read; }).length;
+
+                    // Update badge
+                    if (unread > 0) {
+                        badge.style.display = 'flex';
+                        badge.textContent = unread > 9 ? '9+' : unread;
+                    } else {
+                        badge.style.display = 'none';
+                    }
+
+                    // Render list
+                    if (notifications.length === 0) {
+                        notifList.innerHTML = '<p class="notif-empty">Nenhuma notificação, parceiro.</p>';
+                    } else {
+                        notifList.innerHTML = notifications.map(function (n) {
+                            return '<div class="notif-item ' + (n.is_read ? '' : 'unread') + ' type-' + (n.type || 'info') + '" data-id="' + n.id + '" onclick="markNotifRead(' + n.id + ', this)">' +
+                                '<div class="notif-msg">' + escapeHtml(n.message) + '</div>' +
+                                '<div class="notif-time">' + timeAgo(n.created_at) + '</div>' +
+                                '</div>';
+                        }).join('');
+                    }
+                } catch (err) {
+                    console.error('Erro ao carregar notificações:', err);
+                }
+            };
+
+            window.markNotifRead = async function (id, el) {
+                if (el && el.classList.contains('unread')) {
+                    await fetch('/api/notifications/' + id + '/read', { method: 'POST' });
+                    el.classList.remove('unread');
+                    var currentCount = parseInt(badge.textContent) || 0;
+                    if (currentCount <= 1) {
+                        badge.style.display = 'none';
+                    } else {
+                        badge.textContent = currentCount - 1;
+                    }
+                }
+            };
+
+            // Initial load + polling every 30 seconds
+            loadNotifications();
+            setInterval(loadNotifications, 30000);
+        }
     }
 });
