@@ -58,7 +58,10 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// API Routes
+// Constants and Environment Variables
+const DEV_MASTER_KEY_SECRET = process.env.DEV_MASTER_KEY || "DEV_XERIFE_1899";
+const GEN_API_KEY = process.env.GEN_API_KEY || process.env.GEMINI_API_KEY || "";
+
 // Group all API routes in a Router for compatibility
 const apiRouter = express.Router();
 
