@@ -76,9 +76,10 @@ router.post('/comments', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Acoplar o roteador
-// Importante: No Netlify Functions, o handler recebe o path completo
+// Acoplar o roteador de forma resiliente
+// Isso garante que funcione tanto no Netlify quanto localmente, não importa o prefixo
 app.use('/.netlify/functions/api', router);
 app.use('/api', router);
+app.use('/', router); // Fallback para garantir que o roteador pegue a requisição
 
 module.exports.handler = serverless(app);
