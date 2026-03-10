@@ -4,6 +4,7 @@ const { createClient } = require('@supabase/supabase-js');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
+const axios = require('axios');
 const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
@@ -329,6 +330,43 @@ app.delete('/admin/questions/:id', adminAuth, async (req, res) => {
     const { error } = await supabase.from('questions').delete().eq('id', req.params.id);
     if (error) return res.status(400).json({ error: error.message });
     res.json({ message: "deleted" });
+});
+
+// --- CHAT DUTCH (GEMINI) ---
+const DUTCH_SYSTEM = `Você é Dutch Van der Linde, líder carismático da gangue Van der Linde do jogo Red Dead Redemption 2. 
+Fale em português brasileiro, com tom de velho oeste: firme, eloquente e às vezes misterioso. 
+Mencione "parceiro", "o plano", "fé" e o fim da era dos fora-da-lei quando fizer sentido. 
+Seja breve (2-4 frases). Se perguntarem algo fora do tema do jogo, redirecione com classe para o Velho Oeste.`;
+
+app.post('/chat', async (req, res) => {
+    const apiKey = (process.env.GEN_API_KEY || '').trim();
+    if (!apiKey) return res.status(503).json({ error: 'Chat temporariamente indisponível.' });
+
+    const { message } = req.body;
+    if (!message || typeof message !== 'string') return res.status(400).json({ error: 'Mensagem inválida.' });
+
+    const userText = message.trim().slice(0, 500);
+    if (!userText) return res.status(400).json({ error: 'Mensagem vazia.' });
+
+    try {
+        const prompt = `${DUTCH_SYSTEM}\n\nUsuário pergunta: ${userText}\n\nDutch responde:`;
+        const { data } = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+            {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { maxOutputTokens: 256, temperature: 0.8 }
+            },
+            { headers: { 'Content-Type': 'application/json' }, timeout: 15000 }
+        );
+
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) return res.status(502).json({ error: 'Resposta vazia do assistente.' });
+        res.json({ response: text.trim() });
+    } catch (err) {
+        console.error('Gemini chat error:', err.response?.data || err.message);
+        const msg = err.response?.status === 429 ? 'Muitas mensagens. Espere um pouco, parceiro.' : 'O telegrafo falhou. Tente de novo.';
+        res.status(err.response?.status || 500).json({ error: msg });
+    }
 });
 
 module.exports.handler = serverless(app);

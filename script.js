@@ -190,7 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const res = await fetch('/api/questions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ author: currentUser, title: title, text: text, date: new Date().toLocaleDateString() })
+                    body: JSON.stringify({ author: currentUser || 'Anonimo', title: title, text: text, date: new Date().toLocaleDateString() })
                 });
                 if (res.ok) {
                     questionForm.reset();
@@ -237,6 +237,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.handleSearch = () => {
         if (modSearchInput) fetchMods(modSearchInput.value);
+    };
+
+    window.filterMods = (filter) => {
+        const btns = document.querySelectorAll('.mod-nav-btn');
+        btns.forEach(b => b.classList.remove('active'));
+        const activeBtn = document.querySelector('.mod-nav-btn[onclick*="filterMods(\'' + filter + '\')"]');
+        if (activeBtn) activeBtn.classList.add('active');
+        if (modsGallery) fetchMods(modSearchInput ? modSearchInput.value : '');
     };
 
     if (modsGallery) fetchMods();
@@ -333,22 +341,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById("chat-input");
     const sendBtn = document.getElementById("send-chat");
 
-    if (chatToggle) {
+    if (chatToggle && chatWindow) {
         chatToggle.addEventListener("click", () => {
+            chatWindow.style.display = "flex";
             chatWindow.classList.add("active");
             chatToggle.style.display = "none";
         });
     }
 
     window.closeChat = () => {
-        chatWindow.classList.remove("active");
-        chatToggle.style.display = "flex";
+        if (chatWindow) {
+            chatWindow.style.display = "none";
+            chatWindow.classList.remove("active");
+        }
+        if (chatToggle) chatToggle.style.display = "flex";
     };
 
     const addMessage = (text, type) => {
         const msg = document.createElement("div");
-        msg.className = "message " + type;
-        msg.innerHTML = '<div class="content">' + text + '</div>';
+        msg.className = (type === 'user' ? 'user-msg' : 'ai-msg');
+        msg.innerHTML = '<div class="content">' + escapeHtml(text) + '</div>';
         chatMessages.appendChild(msg);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     };
@@ -361,8 +373,8 @@ document.addEventListener("DOMContentLoaded", () => {
         chatInput.value = "";
 
         const typing = document.createElement("div");
-        typing.className = "message ai typing";
-        typing.innerHTML = '<div class="content">Dutch esta pensando...</div>';
+        typing.className = "ai-msg typing";
+        typing.innerHTML = '<div class="content">Dutch está pensando...</div>';
         chatMessages.appendChild(typing);
 
         try {
@@ -373,7 +385,8 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             const data = await res.json();
             chatMessages.removeChild(typing);
-            addMessage(data.response, 'ai');
+            const reply = res.ok ? (data.response || data.error || 'Sem resposta.') : (data.error || 'O telegrafo falhou.');
+            addMessage(reply, 'ai');
         } catch (err) {
             chatMessages.removeChild(typing);
             addMessage("O telegrafo falhou, tente novamente!", 'ai');
