@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instale o aplicativo - RDR Fan Site</title>
+    <link rel="stylesheet" href="style.css?v=3">
+    <style>
+        .download-page { min-height: 100vh; padding: 120px 20px 60px; }
+        .download-box { max-width: 520px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <header class="navbar">
+        <div class="logo">RDR FanSite</div>
+        <nav>
+            <a href="index.html">Início</a>
+            <a href="index.html#app">App</a>
+        </nav>
+    </header>
+
+    <main class="download-page">
+        <section class="reveal active">
+            <h2 class="section-title">Instale o aplicativo</h2>
+            <div id="download-content" class="glass-card download-box" style="text-align: center;">
+                <p style="color: var(--text-muted); margin-bottom: 24px;">Verificando disponibilidade do download...</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        (function() {
+            var apkUrl = 'rdr-fan-site-app.apk';
+            var buildDocUrl = 'BUILD-APK.md';
+            var content = document.getElementById('download-content');
+
+            fetch(apkUrl, { method: 'HEAD' })
+                .then(function(r) {
+                    if (r.ok) {
+                        content.innerHTML =
+                            '<p style="color: var(--text-muted); margin-bottom: 24px;">Leve o acampamento no bolso. Baixe o app para Android.</p>' +
+                            '<a href="' + apkUrl + '" download class="btn btn-primary" style="font-size: 1.1rem; padding: 16px 32px;">📱 Baixar aplicativo Android</a>' +
+                            '<p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 20px;">APK para Android. Ative &quot;Fontes desconhecidas&quot; se for pedido.</p>';
+                    } else {
+                        throw new Error('not found');
+                    }
+                })
+                .catch(function() {
+                    content.innerHTML =
+                        '<p style="color: var(--text-muted); margin-bottom: 20px;">O APK ainda não foi publicado neste site. Quando o arquivo for adicionado ao repositório, o botão de download aparecerá aqui.</p>' +
+                        '<p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.95rem;">Para publicar o app: gere o APK no Android Studio, coloque <code>rdr-fan-site-app.apk</code> na raiz do site e faça deploy. Instruções: <a href="BUILD-APK.md" style="color: var(--gold);">BUILD-APK.md</a>.</p>' +
+                        '<a href="index.html#app" class="btn btn-outline">Voltar ao site</a>';
+                });
+        })();
+    </script>
+</body>
+</html>

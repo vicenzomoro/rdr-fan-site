@@ -66,12 +66,28 @@ Depois de alterar **`www/index.html`** (por exemplo a URL), rode de novo **`npm 
 
 ## Colocar o APK no site para download
 
-Na pasta **raiz do projeto** (junto de `index.html`), coloque o APK com o nome **`rdr-fan-site-app.apk`**. O site já tem uma seção **“Instale o aplicativo”** (aba **App** no menu) que aponta para esse arquivo.
+O link do site (ex.: `https://rdr-fan-site-ibuu.vercel.app/rdr-fan-site-app.apk`) só funciona se o arquivo **existir no repositório**. Se der **404**, é porque o APK não foi commitado.
 
-Se usar outro nome ou outro endereço, edite no `index.html` o link da seção `#app`:
+### Opção A: APK no repositório (Vercel/Netlify servem o arquivo)
 
-```html
-<a href="rdr-fan-site-app.apk" download class="btn btn-primary" ...>
-```
+1. Depois de gerar o APK no Android Studio, copie o arquivo para a **raiz do projeto** (mesma pasta do `index.html`).
+2. Renomeie para **`rdr-fan-site-app.apk`** (ou use esse nome no `index.html`).
+3. Adicione e faça commit + push:
+   ```bash
+   git add rdr-fan-site-app.apk
+   git commit -m "Adicionar APK para download"
+   git push origin main
+   ```
+4. Espere o Vercel/Netlify fazer o deploy. O link `https://seu-site.vercel.app/rdr-fan-site-app.apk` passará a funcionar.
 
-Troque `rdr-fan-site-app.apk` pelo nome do seu arquivo ou por uma URL (ex.: link do Google Drive).
+### Opção B: APK em link externo (Google Drive, etc.)
+
+Se não quiser colocar o APK no Git (arquivo grande ou preferir hospedar fora):
+
+1. Envie o APK para Google Drive, Dropbox ou outro host.
+2. Obtenha o **link direto de download** (no Drive: “Obter link” → “Qualquer pessoa com o link” → em “Copiar link”, use o link de download direto se disponível; ou use serviços que geram link direto).
+3. No `index.html`, na seção **#app**, troque o `href` do botão para essa URL, por exemplo:
+   ```html
+   <a href="https://drive.google.com/uc?export=download&id=SEU_ID" download class="btn btn-primary" ...>
+   ```
+   (Substitua `SEU_ID` pelo ID do arquivo no Google Drive.)
