@@ -1,0 +1,11 @@
+{
+  "appId": "com.rdrfansite.app",
+  "appName": "RDR Fan Site",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

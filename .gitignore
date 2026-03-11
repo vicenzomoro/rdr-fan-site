@@ -13,3 +13,7 @@ Thumbs.db
 .env
 .env
 .env
+
+# Android (opcional: descomente se não quiser commitar o projeto nativo)
+# android/
+# android/app/build/
