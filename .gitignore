@@ -14,6 +14,9 @@ Thumbs.db
 .env
 .env
 
+# Config do download do APK (cópia do example com sua URL)
+app-download-config.json
+
 # Android (opcional: descomente se não quiser commitar o projeto nativo)
 # android/
 # android/app/build/

@@ -30,26 +30,53 @@
 
     <script>
         (function() {
-            var apkUrl = 'rdr-fan-site-app.apk';
-            var buildDocUrl = 'BUILD-APK.md';
+            var localApk = 'rdr-fan-site-app.apk';
             var content = document.getElementById('download-content');
 
-            fetch(apkUrl, { method: 'HEAD' })
+            function showDownloadButton(url, isExternal) {
+                var linkAttrs = 'href="' + url + '" class="btn btn-primary" style="font-size: 1.1rem; padding: 16px 32px;"';
+                if (isExternal) {
+                    linkAttrs += ' target="_blank" rel="noopener"';
+                } else {
+                    linkAttrs += ' download';
+                }
+                content.innerHTML =
+                    '<p style="color: var(--text-muted); margin-bottom: 24px;">Leve o acampamento no bolso. Baixe o app para Android.</p>' +
+                    '<a ' + linkAttrs + '>📱 Baixar aplicativo Android</a>' +
+                    '<p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 20px;">APK para Android. Ative &quot;Fontes desconhecidas&quot; se for pedido.</p>';
+            }
+
+            function showNotAvailable() {
+                content.innerHTML =
+                    '<p style="color: var(--text-muted); margin-bottom: 20px;">O APK ainda não foi publicado neste site. Quando o arquivo for adicionado (ou a URL configurada), o botão de download aparecerá aqui.</p>' +
+                    '<p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.95rem;">Opções: coloque <code>rdr-fan-site-app.apk</code> na raiz do site, ou crie <code>app-download-config.json</code> a partir do <code>app-download-config.example.json</code> com a URL do APK (ex.: Supabase). Instruções: <a href="BUILD-APK.md" style="color: var(--gold);">BUILD-APK.md</a>.</p>' +
+                    '<a href="index.html#app" class="btn btn-outline">Voltar ao site</a>';
+            }
+
+            // 1) Tentar config (URL externa, ex. Supabase)
+            fetch('app-download-config.json')
                 .then(function(r) {
-                    if (r.ok) {
-                        content.innerHTML =
-                            '<p style="color: var(--text-muted); margin-bottom: 24px;">Leve o acampamento no bolso. Baixe o app para Android.</p>' +
-                            '<a href="' + apkUrl + '" download class="btn btn-primary" style="font-size: 1.1rem; padding: 16px 32px;">📱 Baixar aplicativo Android</a>' +
-                            '<p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 20px;">APK para Android. Ative &quot;Fontes desconhecidas&quot; se for pedido.</p>';
-                    } else {
-                        throw new Error('not found');
+                    if (!r.ok) throw new Error('no config');
+                    return r.json();
+                })
+                .then(function(config) {
+                    if (config && config.apkUrl && config.apkUrl.indexOf('http') === 0) {
+                        showDownloadButton(config.apkUrl, true);
+                        return true;
                     }
+                    throw new Error('no url');
                 })
                 .catch(function() {
-                    content.innerHTML =
-                        '<p style="color: var(--text-muted); margin-bottom: 20px;">O APK ainda não foi publicado neste site. Quando o arquivo for adicionado ao repositório, o botão de download aparecerá aqui.</p>' +
-                        '<p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.95rem;">Para publicar o app: gere o APK no Android Studio, coloque <code>rdr-fan-site-app.apk</code> na raiz do site e faça deploy. Instruções: <a href="BUILD-APK.md" style="color: var(--gold);">BUILD-APK.md</a>.</p>' +
-                        '<a href="index.html#app" class="btn btn-outline">Voltar ao site</a>';
+                    // 2) Fallback: APK na raiz do site
+                    fetch(localApk, { method: 'HEAD' })
+                        .then(function(r) {
+                            if (r.ok) {
+                                showDownloadButton(localApk, false);
+                            } else {
+                                throw new Error('not found');
+                            }
+                        })
+                        .catch(showNotAvailable);
                 });
         })();
     </script>

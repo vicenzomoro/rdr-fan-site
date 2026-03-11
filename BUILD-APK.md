@@ -91,3 +91,5 @@ Se não quiser colocar o APK no Git (arquivo grande ou preferir hospedar fora):
    <a href="https://drive.google.com/uc?export=download&id=SEU_ID" download class="btn btn-primary" ...>
    ```
    (Substitua `SEU_ID` pelo ID do arquivo no Google Drive.)
+
+**Alternativa com config:** a página `app-download.html` também aceita um arquivo `app-download-config.json` (copie de `app-download-config.example.json`) com a chave `apkUrl` apontando para a URL do APK (ex.: Supabase Storage). Assim você não precisa commitar o APK nem editar HTML; só criar o config no servidor.
