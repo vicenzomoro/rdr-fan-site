@@ -348,10 +348,11 @@ app.post('/chat', async (req, res) => {
     const userText = message.trim().slice(0, 500);
     if (!userText) return res.status(400).json({ error: 'Mensagem vazia.' });
 
+    const model = (process.env.GEN_MODEL || 'gemini-1.5-flash-latest').trim();
     try {
         const prompt = `${DUTCH_SYSTEM}\n\nUsuário pergunta: ${userText}\n\nDutch responde:`;
         const { data } = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
             {
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: { maxOutputTokens: 256, temperature: 0.8 }
@@ -363,9 +364,14 @@ app.post('/chat', async (req, res) => {
         if (!text) return res.status(502).json({ error: 'Resposta vazia do assistente.' });
         res.json({ response: text.trim() });
     } catch (err) {
-        console.error('Gemini chat error:', err.response?.data || err.message);
-        const msg = err.response?.status === 429 ? 'Muitas mensagens. Espere um pouco, parceiro.' : 'O telegrafo falhou. Tente de novo.';
-        res.status(err.response?.status || 500).json({ error: msg });
+        const body = err.response?.data;
+        const status = err.response?.status;
+        console.error('Gemini chat error:', status, body || err.message);
+        let msg = 'O telegrafo falhou. Tente de novo.';
+        if (status === 429) msg = 'Muitas mensagens. Espere um pouco, parceiro.';
+        else if (status === 404) msg = 'Modelo de IA indisponível. Avise o Xerife.';
+        else if (body?.error?.message) msg = body.error.message;
+        res.status(status || 500).json({ error: msg });
     }
 });
 
