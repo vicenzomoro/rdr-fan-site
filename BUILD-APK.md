@@ -2,6 +2,10 @@
 
 O app Android é um “wrapper”: abre o site no navegador embutido (WebView). O site precisa estar publicado (ex.: Netlify).
 
+**Onde está o “APK inteiro”?** O projeto Android completo está na pasta **`android/`** do repositório. O arquivo **`.apk`** em si não vem no Git: você gera no **seu computador** com o Android Studio (passos abaixo). Depois de gerar, o APK fica em `android/app/build/outputs/apk/debug/app-debug.apk`; você pode renomeá-lo para `rdr-fan-site-app.apk` e colocá-lo na raiz do site ou subir no Supabase e usar `app-download-config.json`.
+
+---
+
 ## 1. Definir a URL do site
 
 Edite **`www/index.html`** e troque a URL pelo endereço do seu site:

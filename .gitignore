@@ -17,6 +17,5 @@ Thumbs.db
 # Config do download do APK (cópia do example com sua URL)
 app-download-config.json
 
-# Android (opcional: descomente se não quiser commitar o projeto nativo)
-# android/
-# android/app/build/
+# Android: build e APK gerados (não commitar; gere o APK no seu PC)
+android/app/build/
