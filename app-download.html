@@ -31,6 +31,7 @@
     <script>
         (function() {
             var localApk = 'rdr-fan-site-app.apk';
+ HEAD
             var content = document.getElementById('download-content');
 
             function showDownloadButton(url, isExternal) {
@@ -54,29 +55,71 @@
             }
 
             // 1) Tentar config (URL externa, ex. Supabase)
+
+            var buildDocUrl = 'BUILD-APK.md';
+            var content = document.getElementById('download-content');
+
+            function renderDownload(url) {
+                content.innerHTML =
+                    '<p style="color: var(--text-muted); margin-bottom: 24px;">Leve o acampamento no bolso. Baixe o app para Android.</p>' +
+                    '<a href="' + url + '" download class="btn btn-primary" style="font-size: 1.1rem; padding: 16px 32px;">📱 Baixar aplicativo Android</a>' +
+                    '<p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 20px;">APK para Android. Ative &quot;Fontes desconhecidas&quot; se for pedido.</p>';
+            }
+
+            function renderPending() {
+                content.innerHTML =
+                    '<p style="color: var(--text-muted); margin-bottom: 20px;">O APK ainda não foi publicado neste site. Quando o arquivo ou URL forem configurados, o botão de download aparecerá aqui.</p>' +
+                    '<p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.95rem;">Para publicar o app: gere o APK no Android Studio e escolha uma das opções: <br>1) Colocar <code>rdr-fan-site-app.apk</code> na raiz do site;<br>2) Subir para o Supabase Storage e configurar <code>app-download-config.json</code> com o campo <code>apkUrl</code>. Instruções: <a href="BUILD-APK.md" style="color: var(--gold);">BUILD-APK.md</a>.</p>' +
+                    '<a href="index.html#app" class="btn btn-outline">Voltar ao site</a>';
+            }
+
+            // 1) Tenta carregar URL a partir de app-download-config.json (ex.: Supabase Storage)
+ 5290c12 (add android apk)
             fetch('app-download-config.json')
                 .then(function(r) {
                     if (!r.ok) throw new Error('no config');
                     return r.json();
                 })
+ HEAD
                 .then(function(config) {
                     if (config && config.apkUrl && config.apkUrl.indexOf('http') === 0) {
                         showDownloadButton(config.apkUrl, true);
                         return true;
+
+                .then(function(cfg) {
+                    if (cfg && cfg.apkUrl) {
+                        renderDownload(cfg.apkUrl);
+                    } else {
+                        throw new Error('no apkUrl');
+ 5290c12 (add android apk)
                     }
                     throw new Error('no url');
                 })
                 .catch(function() {
+ HEAD
                     // 2) Fallback: APK na raiz do site
                     fetch(localApk, { method: 'HEAD' })
                         .then(function(r) {
                             if (r.ok) {
                                 showDownloadButton(localApk, false);
+
+                    // 2) Se não houver config ou apkUrl, tenta o arquivo local do repositório
+                    fetch(localApk, { method: 'HEAD' })
+                        .then(function(r) {
+                            if (r.ok) {
+                                renderDownload(localApk);
+5290c12 (add android apk)
                             } else {
                                 throw new Error('not found');
                             }
                         })
+ HEAD
                         .catch(showNotAvailable);
+
+                        .catch(function() {
+                            renderPending();
+                        });
+ 5290c12 (add android apk)
                 });
         })();
     </script>
