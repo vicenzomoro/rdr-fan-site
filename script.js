@@ -355,21 +355,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
     
-    // Selecionar método de pagamento
+    // Selecionar método de pagamento (apenas PIX)
     window.selectDonationMethod = function(method) {
         var cards = document.querySelectorAll('.donation-method-card');
         cards.forEach(function(card) { card.classList.remove('selected'); });
         document.getElementById('method-' + method).classList.add('selected');
         document.getElementById('donation-method').value = method;
-        
-        // Esconder todas as infos
-        document.getElementById('pix-info').style.display = 'none';
-        document.getElementById('paypal-info').style.display = 'none';
-        document.getElementById('picpay-info').style.display = 'none';
-        
-        // Mostrar info do método selecionado
-        var infoId = method + '-info';
-        document.getElementById(infoId).style.display = 'block';
     };
     
     // Copiar chave PIX
@@ -440,75 +431,15 @@ document.addEventListener("DOMContentLoaded", () => {
     var donationForm = document.getElementById('donation-form');
     if (donationForm) {
         // =====================================================
-        // ⚠️ CONFIGURE SUAS CHAVES DE PAGAMENTO AQUI ⚠️
+        // ⚠️ CONFIGURAÇÃO PIX ⚠️
+        // Chave PIX aleatória: 353f7783-5765-4979-8495-195eed6eb8a1
         // =====================================================
         
-        // CHAVE PIX (CPF, e-mail, telefone ou aleatória)
-        var PIX_KEY = '353f7783-5765-4979-8495-195eed6eb8a1'; // Chave PIX aleatória configurada
-        
-        // LINKS DE PAGAMENTO (deixe vazio "" se não tiver)
-        var PAYPAL_LINK = ''; // Ex: 'https://paypal.me/seuusuario' ou link de doação PayPal
-        var PICPAY_LINK = ''; // Ex: 'https://pay.picpay.com/seuusuario'
-        var MERCADO_PAGO_LINK = ''; // Ex: 'https://mpago.la/2xYzAbc'
-        
-        // =====================================================
+        var PIX_KEY = '353f7783-5765-4979-8495-195eed6eb8a1';
         
         // Inserir chave PIX na tela
         var pixKeyEl = document.getElementById('pix-key');
-        if (pixKeyEl) {
-            if (PIX_KEY && PIX_KEY !== 'seu-pix-aqui@exemplo.com') {
-                pixKeyEl.textContent = PIX_KEY;
-            } else {
-                pixKeyEl.textContent = 'Configure sua chave PIX no script.js';
-                pixKeyEl.style.color = '#ff4c4c';
-            }
-        }
-        
-        // Configurar links de pagamento
-        var paypalLink = document.getElementById('paypal-link');
-        if (paypalLink && PAYPAL_LINK) {
-            paypalLink.href = PAYPAL_LINK;
-            paypalLink.parentElement.style.display = 'block';
-        } else if (paypalLink) {
-            paypalLink.parentElement.style.display = 'none';
-        }
-        
-        var picpayLink = document.getElementById('picpay-link');
-        if (picpayLink && PICPAY_LINK) {
-            picpayLink.href = PICPAY_LINK;
-            picpayLink.parentElement.style.display = 'block';
-        } else if (picpayLink) {
-            picpayLink.parentElement.style.display = 'none';
-        }
-        
-        // Adicionar Mercado Pago se configurado
-        if (MERCADO_PAGO_LINK) {
-            var mpInfo = document.createElement('div');
-            mpInfo.id = 'mercadopago-info';
-            mpInfo.className = 'donation-info';
-            mpInfo.style.display = 'none';
-            mpInfo.style.background = 'rgba(0, 157, 224, 0.1)';
-            mpInfo.style.border = '1px solid #009de0';
-            mpInfo.innerHTML = 
-                '<h4 style="color: #009de0; margin-bottom: 15px;">💳 Mercado Pago</h4>' +
-                '<a href="' + MERCADO_PAGO_LINK + '" target="_blank" class="btn btn-primary" style="width: 100%;">' +
-                '🔗 Pagar com Mercado Pago</a>' +
-                '<p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 10px;">PIX, cartão de crédito ou boleto</p>';
-            
-            document.getElementById('picpay-info').parentNode.insertBefore(mpInfo, document.getElementById('picpay-info').nextSibling);
-            
-            // Adicionar opção no card de métodos
-            var mpCard = document.createElement('div');
-            mpCard.className = 'donation-method-card';
-            mpCard.id = 'method-mercadopago';
-            mpCard.onclick = function() { selectDonationMethod('mercadopago'); };
-            mpCard.innerHTML = 
-                '<div style="font-size: 2.5rem; margin-bottom: 10px;">💳</div>' +
-                '<h4 style="color: var(--gold); margin-bottom: 5px;">Mercado Pago</h4>' +
-                '<p style="font-size: 0.85rem; color: var(--text-muted);">PIX, cartão ou boleto</p>';
-            
-            document.querySelector('.donation-methods').appendChild(mpCard);
-        }
+        if (pixKeyEl) pixKeyEl.textContent = PIX_KEY;
         
         donationForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -516,16 +447,10 @@ document.addEventListener("DOMContentLoaded", () => {
             var name = document.getElementById('donor-name').value.trim();
             var email = document.getElementById('donor-email').value.trim();
             var amount = document.getElementById('donation-amount').value;
-            var method = document.getElementById('donation-method').value;
+            var method = 'pix'; // Sempre PIX
             
-            if (!name || !amount || !method) {
-                showToast('Preencha nome, valor e método de pagamento.', 'error');
-                return;
-            }
-            
-            // Aviso importante
-            if (method === 'pix' && (!PIX_KEY || PIX_KEY === 'seu-pix-aqui@exemplo.com')) {
-                showToast('Erro: Chave PIX não configurada. Contate o administrador.', 'error');
+            if (!name || !amount) {
+                showToast('Preencha nome e valor.', 'error');
                 return;
             }
             
