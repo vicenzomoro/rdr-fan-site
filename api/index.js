@@ -357,4 +357,9 @@ app.delete('/api/admin/questions/:id', adminAuth, async (req, res) => {
     res.json({ message: "deleted" });
 });
 
+// Vercel Serverless Function Handler
 module.exports = app;
+
+// Para Vercel: handler serverless
+const serverless = require('serverless-http');
+module.exports.handler = serverless(app);
