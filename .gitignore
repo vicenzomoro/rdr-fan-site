@@ -8,14 +8,19 @@ database.sqlite
 # Arquivos do sistema operacional
 .DS_Store
 Thumbs.db
+
+# Variáveis de ambiente
 .env
-.env
-.env
-.env
-.env
+.env.local
+.env.*.local
 
 # Config do download do APK (cópia do example com sua URL)
 app-download-config.json
 
 # Android: build e APK gerados (não commitar; gere o APK no seu PC)
 android/app/build/
+
+# Netlify (não usar mais)
+.netlify/
+netlify/
+netlify.toml

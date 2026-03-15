@@ -456,19 +456,16 @@ api.post('/chat', async (req, res) => {
 
 // Mounting paths
 app.use('/api', api);
-app.use('/.netlify/functions/api', api);
 
 // Static files (only for local dev)
-if (!process.env.NETLIFY) {
-    const PORT = process.env.PORT || 3000;
-    app.use(express.static(path.join(__dirname)));
-    app.get('*', (req, res) => {
-        if (!req.path.startsWith('/api')) {
-            res.sendFile(path.join(__dirname, 'index.html'));
-        }
-    });
+const PORT = process.env.PORT || 3000;
+app.use(express.static(path.join(__dirname)));
+app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+        res.sendFile(path.join(__dirname, 'index.html'));
+    }
+});
 
-    app.listen(PORT, () => console.log(`Local dev: http://localhost:${PORT}`));
-}
+app.listen(PORT, () => console.log(`Local dev: http://localhost:${PORT}`));
 
 module.exports = app;
