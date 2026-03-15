@@ -155,6 +155,57 @@ app.post('/feedback', async (req, res) => {
     res.json({ message: 'sucesso' });
 });
 
+// --- ROTAS DE DOAÇÕES ---
+
+app.post('/donations', async (req, res) => {
+    const { donor_name, donor_email, amount, payment_method, message, is_public } = req.body;
+    
+    if (!donor_name || !amount || !payment_method) {
+        return res.status(400).json({ error: 'Nome, valor e método de pagamento são obrigatórios.' });
+    }
+    
+    try {
+        const { data, error } = await supabase.from('donations').insert([{
+            donor_name: String(donor_name).trim(),
+            donor_email: donor_email ? String(donor_email).trim() : null,
+            amount: parseFloat(amount),
+            payment_method: payment_method,
+            message: message ? String(message).trim() : null,
+            is_public: is_public !== false
+        }]).select();
+        
+        if (error) throw error;
+        
+        // Criar notificação para o doador
+        if (donor_name) {
+            await createNotification(donor_name, `Obrigado por sua doação de R$ ${parseFloat(amount).toFixed(2)}! Você é parte essencial do bando.`, 'success');
+        }
+        
+        res.json({ message: 'success', data: data[0] });
+    } catch (err) {
+        console.error('Erro ao registrar doação:', err);
+        res.status(500).json({ error: 'Erro ao registrar doação.' });
+    }
+});
+
+app.get('/donations', async (req, res) => {
+    const limit = parseInt(req.query.limit) || 50;
+    
+    try {
+        const { data, error } = await supabase.from('donations')
+            .select('*')
+            .eq('is_public', true)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+        
+        if (error) throw error;
+        res.json({ data: data || [] });
+    } catch (err) {
+        console.error('Erro ao buscar doações:', err);
+        res.status(500).json({ error: 'Erro ao buscar doações.' });
+    }
+});
+
 app.post('/mods', upload.single('file'), async (req, res) => {
     const { title, description, username } = req.body;
     const file = req.file;

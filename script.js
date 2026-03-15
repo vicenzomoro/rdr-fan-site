@@ -334,6 +334,247 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // === DONATION SYSTEM ===
+    
+    // Selecionar valor da doação
+    window.selectDonationAmount = function(amount) {
+        var btns = document.querySelectorAll('.donation-amount-btn');
+        btns.forEach(function(btn) { btn.classList.remove('active'); });
+        event.target.classList.add('active');
+        document.getElementById('custom-amount').value = '';
+        document.getElementById('donation-amount').value = amount;
+    };
+    
+    // Limpar seleção de botões ao digitar valor personalizado
+    window.clearDonationButtons = function() {
+        var btns = document.querySelectorAll('.donation-amount-btn');
+        btns.forEach(function(btn) { btn.classList.remove('active'); });
+        var customValue = document.getElementById('custom-amount').value;
+        if (customValue) {
+            document.getElementById('donation-amount').value = customValue;
+        }
+    };
+    
+    // Selecionar método de pagamento
+    window.selectDonationMethod = function(method) {
+        var cards = document.querySelectorAll('.donation-method-card');
+        cards.forEach(function(card) { card.classList.remove('selected'); });
+        document.getElementById('method-' + method).classList.add('selected');
+        document.getElementById('donation-method').value = method;
+        
+        // Esconder todas as infos
+        document.getElementById('pix-info').style.display = 'none';
+        document.getElementById('paypal-info').style.display = 'none';
+        document.getElementById('picpay-info').style.display = 'none';
+        
+        // Mostrar info do método selecionado
+        var infoId = method + '-info';
+        document.getElementById(infoId).style.display = 'block';
+    };
+    
+    // Copiar chave PIX
+    window.copyPixKey = function() {
+        var pixKey = document.getElementById('pix-key').textContent;
+        navigator.clipboard.writeText(pixKey).then(function() {
+            showToast('Chave PIX copiada!', 'success');
+        }).catch(function() {
+            showToast('Erro ao copiar chave.', 'error');
+        });
+    };
+    
+    // Carregar doadores
+    var loadDonors = async function() {
+        var donorsList = document.getElementById('donors-list');
+        if (!donorsList) return;
+        
+        try {
+            var res = await fetch('/api/donations?limit=20');
+            var data = await res.json();
+            var donations = data.data || [];
+            
+            donorsList.innerHTML = '';
+            
+            if (donations.length === 0) {
+                donorsList.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 30px; grid-column: 1/-1;">Seja o primeiro a apoiar o acampamento!</p>';
+                return;
+            }
+            
+            donations.forEach(function(d) {
+                var card = document.createElement('div');
+                card.className = 'donor-card';
+                
+                // Determinar badge baseado no valor
+                var badgeClass = 'supporter';
+                var badgeText = 'Apoiador';
+                var amount = parseFloat(d.amount);
+                
+                if (amount >= 100) {
+                    badgeClass = 'legendary';
+                    badgeText = 'Lendário';
+                } else if (amount >= 50) {
+                    badgeClass = 'hero';
+                    badgeText = 'Herói';
+                } else if (amount >= 20) {
+                    badgeClass = 'hero';
+                    badgeText = 'Parceiro';
+                }
+                
+                var dateObj = new Date(d.created_at);
+                var dateStr = dateObj.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+                
+                card.innerHTML = 
+                    '<div class="donor-name">' + escapeHtml(d.donor_name) + '</div>' +
+                    '<div class="donor-amount">R$ ' + amount.toFixed(2) + '</div>' +
+                    '<div class="donor-date">' + dateStr + '</div>' +
+                    '<span class="donor-badge ' + badgeClass + '">' + badgeText + '</span>';
+                
+                donorsList.appendChild(card);
+            });
+        } catch (err) {
+            console.error('Erro ao carregar doadores:', err);
+            donorsList.innerHTML = '<p style="color: var(--primary-red); text-align: center;">Erro ao carregar apoiadores.</p>';
+        }
+    };
+    
+    // Formulário de doação
+    var donationForm = document.getElementById('donation-form');
+    if (donationForm) {
+        // =====================================================
+        // ⚠️ CONFIGURE SUAS CHAVES DE PAGAMENTO AQUI ⚠️
+        // =====================================================
+        
+        // CHAVE PIX (CPF, e-mail, telefone ou aleatória)
+        var PIX_KEY = '353f7783-5765-4979-8495-195eed6eb8a1'; // Chave PIX aleatória configurada
+        
+        // LINKS DE PAGAMENTO (deixe vazio "" se não tiver)
+        var PAYPAL_LINK = ''; // Ex: 'https://paypal.me/seuusuario' ou link de doação PayPal
+        var PICPAY_LINK = ''; // Ex: 'https://pay.picpay.com/seuusuario'
+        var MERCADO_PAGO_LINK = ''; // Ex: 'https://mpago.la/2xYzAbc'
+        
+        // =====================================================
+        
+        // Inserir chave PIX na tela
+        var pixKeyEl = document.getElementById('pix-key');
+        if (pixKeyEl) {
+            if (PIX_KEY && PIX_KEY !== 'seu-pix-aqui@exemplo.com') {
+                pixKeyEl.textContent = PIX_KEY;
+            } else {
+                pixKeyEl.textContent = 'Configure sua chave PIX no script.js';
+                pixKeyEl.style.color = '#ff4c4c';
+            }
+        }
+        
+        // Configurar links de pagamento
+        var paypalLink = document.getElementById('paypal-link');
+        if (paypalLink && PAYPAL_LINK) {
+            paypalLink.href = PAYPAL_LINK;
+            paypalLink.parentElement.style.display = 'block';
+        } else if (paypalLink) {
+            paypalLink.parentElement.style.display = 'none';
+        }
+        
+        var picpayLink = document.getElementById('picpay-link');
+        if (picpayLink && PICPAY_LINK) {
+            picpayLink.href = PICPAY_LINK;
+            picpayLink.parentElement.style.display = 'block';
+        } else if (picpayLink) {
+            picpayLink.parentElement.style.display = 'none';
+        }
+        
+        // Adicionar Mercado Pago se configurado
+        if (MERCADO_PAGO_LINK) {
+            var mpInfo = document.createElement('div');
+            mpInfo.id = 'mercadopago-info';
+            mpInfo.className = 'donation-info';
+            mpInfo.style.display = 'none';
+            mpInfo.style.background = 'rgba(0, 157, 224, 0.1)';
+            mpInfo.style.border = '1px solid #009de0';
+            mpInfo.innerHTML = 
+                '<h4 style="color: #009de0; margin-bottom: 15px;">💳 Mercado Pago</h4>' +
+                '<a href="' + MERCADO_PAGO_LINK + '" target="_blank" class="btn btn-primary" style="width: 100%;">' +
+                '🔗 Pagar com Mercado Pago</a>' +
+                '<p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 10px;">PIX, cartão de crédito ou boleto</p>';
+            
+            document.getElementById('picpay-info').parentNode.insertBefore(mpInfo, document.getElementById('picpay-info').nextSibling);
+            
+            // Adicionar opção no card de métodos
+            var mpCard = document.createElement('div');
+            mpCard.className = 'donation-method-card';
+            mpCard.id = 'method-mercadopago';
+            mpCard.onclick = function() { selectDonationMethod('mercadopago'); };
+            mpCard.innerHTML = 
+                '<div style="font-size: 2.5rem; margin-bottom: 10px;">💳</div>' +
+                '<h4 style="color: var(--gold); margin-bottom: 5px;">Mercado Pago</h4>' +
+                '<p style="font-size: 0.85rem; color: var(--text-muted);">PIX, cartão ou boleto</p>';
+            
+            document.querySelector('.donation-methods').appendChild(mpCard);
+        }
+        
+        donationForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            var name = document.getElementById('donor-name').value.trim();
+            var email = document.getElementById('donor-email').value.trim();
+            var amount = document.getElementById('donation-amount').value;
+            var method = document.getElementById('donation-method').value;
+            
+            if (!name || !amount || !method) {
+                showToast('Preencha nome, valor e método de pagamento.', 'error');
+                return;
+            }
+            
+            // Aviso importante
+            if (method === 'pix' && (!PIX_KEY || PIX_KEY === 'seu-pix-aqui@exemplo.com')) {
+                showToast('Erro: Chave PIX não configurada. Contate o administrador.', 'error');
+                return;
+            }
+            
+            var btn = donationForm.querySelector('button');
+            var originalText = btn.innerHTML;
+            btn.innerHTML = 'Processando...';
+            btn.disabled = true;
+            
+            try {
+                var res = await fetch('/api/donations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        donor_name: name,
+                        donor_email: email || null,
+                        amount: parseFloat(amount),
+                        payment_method: method,
+                        is_public: true
+                    })
+                });
+                
+                var result = await res.json();
+                
+                if (res.ok) {
+                    showToast('Doação registrada! Obrigado pelo apoio, parceiro!', 'success');
+                    document.getElementById('donation-status').innerText = 'Obrigado! Sua doação ajuda a manter o acampamento!';
+                    document.getElementById('donation-status').style.color = '#28a745';
+                    document.getElementById('donation-status').style.display = 'block';
+                    donationForm.reset();
+                    loadDonors();
+                } else {
+                    showToast('Erro: ' + (result.error || 'Tente novamente.'), 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Erro de conexão. Tente novamente.', 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                setTimeout(function() { 
+                    document.getElementById('donation-status').style.display = 'none'; 
+                }, 5000);
+            }
+        });
+        
+        // Carregar doadores ao iniciar
+        loadDonors();
+    }
+
     // === AI Chat ===
     const chatToggle = document.getElementById("ai-chat-toggle");
     const chatWindow = document.getElementById("ai-chat-window");

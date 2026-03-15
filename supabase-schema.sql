@@ -58,6 +58,18 @@ CREATE TABLE IF NOT EXISTS public.mod_submissions (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Doações (histórico de apoiadores)
+CREATE TABLE IF NOT EXISTS public.donations (
+  id BIGSERIAL PRIMARY KEY,
+  donor_name TEXT NOT NULL,
+  donor_email TEXT,
+  amount DECIMAL(10,2) NOT NULL,
+  payment_method TEXT NOT NULL,
+  message TEXT,
+  is_public BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Notificações (sino para o usuário)
 CREATE TABLE IF NOT EXISTS public.notifications (
   id BIGSERIAL PRIMARY KEY,
@@ -82,6 +94,8 @@ CREATE INDEX IF NOT EXISTS idx_comments_created ON public.comments(created_at DE
 CREATE INDEX IF NOT EXISTS idx_mod_submissions_approved ON public.mod_submissions(is_approved) WHERE is_approved = true;
 CREATE INDEX IF NOT EXISTS idx_notifications_username ON public.notifications(username);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON public.notifications(username, is_read) WHERE is_read = false;
+CREATE INDEX IF NOT EXISTS idx_donations_created ON public.donations(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_donations_public ON public.donations(is_public) WHERE is_public = true;
 
 -- ---------- STORAGE (buckets para arquivos) ----------
 -- Bucket "mods": arquivos de mods enviados pelos usuários (já usado pelo código)
@@ -127,6 +141,7 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mod_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_logs ENABLE ROW LEVEL SECURITY;
 
@@ -158,6 +173,12 @@ WITH CHECK (true);
 
 CREATE POLICY "Service role full access mod_submissions"
 ON public.mod_submissions FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Service role full access donations"
+ON public.donations FOR ALL
 TO service_role
 USING (true)
 WITH CHECK (true);

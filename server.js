@@ -307,6 +307,77 @@ api.post('/feedback', async (req, res) => {
     res.json({ message: 'sucesso' });
 });
 
+// === ROTAS DE DOACOES ===
+
+api.post('/donations', async (req, res) => {
+    const { donor_name, donor_email, amount, payment_method, message, is_public } = req.body;
+    
+    if (!donor_name || !amount || !payment_method) {
+        return res.status(400).json({ error: 'Nome, valor e método de pagamento são obrigatórios.' });
+    }
+    
+    try {
+        const { data, error } = await supabase.from('donations').insert([{
+            donor_name: sanitize(donor_name),
+            donor_email: donor_email ? sanitize(donor_email) : null,
+            amount: parseFloat(amount),
+            payment_method: payment_method,
+            message: message ? sanitize(message) : null,
+            is_public: is_public !== false
+        }]).select();
+        
+        if (error) throw error;
+        
+        // Criar notificação para o doador (se tiver username)
+        if (donor_name) {
+            await createNotification(donor_name, `Obrigado por sua doação de R$ ${parseFloat(amount).toFixed(2)}! Você é parte essencial do bando.`, 'success');
+        }
+        
+        res.json({ message: 'success', data: data[0] });
+    } catch (err) {
+        console.error('Erro ao registrar doação:', err);
+        res.status(500).json({ error: 'Erro ao registrar doação.' });
+    }
+});
+
+api.get('/donations', async (req, res) => {
+    const limit = parseInt(req.query.limit) || 50;
+    
+    try {
+        const { data, error } = await supabase.from('donations')
+            .select('*')
+            .eq('is_public', true)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+        
+        if (error) throw error;
+        res.json({ data: data || [] });
+    } catch (err) {
+        console.error('Erro ao buscar doações:', err);
+        res.status(500).json({ error: 'Erro ao buscar doações.' });
+    }
+});
+
+api.get('/donations/total', async (req, res) => {
+    try {
+        const { count, error } = await supabase.from('donations')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_public', true);
+        
+        if (error) throw error;
+        
+        // Somar total arrecadado
+        const { data: sumData } = await supabase.rpc('sum_donations', { filter_public: true });
+        
+        res.json({ 
+            count: count || 0, 
+            total: sumData || 0 
+        });
+    } catch (err) {
+        res.json({ count: 0, total: 0 });
+    }
+});
+
 api.post('/questions', async (req, res) => {
     const { author, title, text, date } = req.body;
     const { data, error } = await supabase.from('questions').insert([{ author, title, text, date }]).select();
