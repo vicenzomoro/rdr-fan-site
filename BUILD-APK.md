@@ -1,99 +1,180 @@
 # Como gerar o APK do RDR Fan Site
 
-O app Android é um “wrapper”: abre o site no navegador embutido (WebView). O site precisa estar publicado (ex.: Netlify).
+O app Android é um "wrapper": abre o site no navegador embutido (WebView). O site precisa estar publicado (ex.: Vercel/Netlify).
 
-**Onde está o “APK inteiro”?** O projeto Android completo está na pasta **`android/`** do repositório. O arquivo **`.apk`** em si não vem no Git: você gera no **seu computador** com o Android Studio (passos abaixo). Depois de gerar, o APK fica em `android/app/build/outputs/apk/debug/app-debug.apk`; você pode renomeá-lo para `rdr-fan-site-app.apk` e colocá-lo na raiz do site ou subir no Supabase e usar `app-download-config.json`.
+## 📦 Tamanho do APK e Espaço Necessário
+
+**Importante:** Para instalar, o Android precisa de **2-3x o tamanho do APK** em espaço livre.
+
+| Tipo de APK | Tamanho | Espaço necessário |
+|-------------|---------|-------------------|
+| Debug (padrão) | ~25-35MB | ~75-100MB |
+| Release (otimizado) | ~15-25MB | ~45-75MB |
+| Release por arquitetura | ~10-15MB | ~30-45MB |
+
+**Se você tem pouco espaço (ex.: 50MB):** Use o build **release por arquitetura** ou **GitHub Actions** (veja abaixo).
 
 ---
 
-## 1. Definir a URL do site
+## ☁️ Opção 1: GitHub Actions (RECOMENDADO - sem usar seu disco)
 
-Edite **`www/index.html`** e troque a URL pelo endereço do seu site:
+O APK é gerado **na nuvem do GitHub**, sem ocupar espaço na sua máquina.
 
-```javascript
-var SITE_URL = 'https://SEU-SITE.netlify.app';  // ex: https://rdr-fan-site.netlify.app
-```
+### Como usar:
 
-Salve o arquivo.
+1. **Faça push do código** para o GitHub:
+   ```bash
+   git add .
+   git commit -m "Preparar build do APK"
+   git push origin main
+   ```
 
-## 2. Instalar dependências e adicionar Android
+2. **O GitHub vai buildar automaticamente**:
+   - Vá em `https://github.com/SEU-USUARIO/SEU-REPO/actions`
+   - Clique no workflow "Build Android APK"
+   - Aguarde concluir (~5-10 minutos)
 
-No terminal, na pasta do projeto:
+3. **Baixe os APKs**:
+   - Clique no workflow concluído
+   - Em "Artifacts", baixe `apk-release` ou `apk-debug`
+   - Extraia o arquivo ZIP
+
+4. **APKs disponíveis**:
+   - `app-arm64-v8a-release.apk` - dispositivos modernos (~10-15MB)
+   - `app-armeabi-v7a-release.apk` - dispositivos antigos (~10-15MB)
+   - `app-debug.apk` - versão de teste
+
+### Rodar build manualmente:
+
+No GitHub, vá em **Actions → Build Android APK → Run workflow**
+
+---
+
+## 💻 Opção 2: Gradle Local (requer JDK e espaço em disco)
+
+### Requisitos mínimos
+
+- **Node.js** (já usado no projeto)
+- **JDK 17** ([download](https://www.oracle.com/java/technologies/downloads/))
+- **~2GB livres** no disco (para cache do Gradle + build)
+
+### 1. Instalar dependências e sincronizar
 
 ```bash
 npm install
-npm run cap:add
+npm run cap:sync
 ```
 
-(Se `cap:add` der erro, rode: `npx cap add android`.)
-
-## 3. Sincronizar e abrir no Android Studio
+### 2. Gerar APK Otimizado (menor tamanho)
 
 ```bash
-npm run cap:sync
-npm run cap:open
+cd android
+./gradlew clean assembleRelease
 ```
 
-Isso abre o projeto Android no **Android Studio**.
+Isso cria **dois APKs menores** (já configurado no projeto):
+- `app-armeabi-v7a-release.apk` (~10-15MB) - celulares mais antigos
+- `app-arm64-v8a-release.apk` (~10-15MB) - celulares modernos (maioria)
 
-## 4. Gerar o APK no Android Studio
+**Localização:** `android/app/build/outputs/apk/release/`
 
-1. No Android Studio: **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
-2. Quando terminar, clique em **Locate** no aviso que aparecer.
-3. O APK estará em algo como:  
-   `android/app/build/outputs/apk/debug/app-debug.apk`
-
-Para um APK **release** (assinado, para publicar):
-
-- **Build → Generate Signed Bundle / APK** → escolha **APK** e crie/use um keystore.
-- Siga o assistente; o APK release sairá em `android/app/build/outputs/apk/release/`.
-
-## Requisitos
-
-- **Node.js** (já usado no projeto)
-- **Android Studio** ([download](https://developer.android.com/studio))
-- **JDK 17** (geralmente já vem com o Android Studio)
-
-## Resumo dos comandos
-
-| Ação              | Comando            |
-|-------------------|--------------------|
-| Instalar deps     | `npm install`      |
-| Adicionar Android | `npm run cap:add`  |
-| Sincronizar      | `npm run cap:sync` |
-| Abrir no Android Studio | `npm run cap:open` |
-| Tudo de uma vez   | `npm run android:build` |
-
-Depois de alterar **`www/index.html`** (por exemplo a URL), rode de novo **`npm run cap:sync`** antes de gerar o APK.
+**Use o `arm64-v8a` para a maioria dos dispositivos modernos.**
 
 ---
 
-## Colocar o APK no site para download
+## 📱 Publicar o APK para Download
 
-O link do site (ex.: `https://rdr-fan-site-ibuu.vercel.app/rdr-fan-site-app.apk`) só funciona se o arquivo **existir no repositório**. Se der **404**, é porque o APK não foi commitado.
+### Opção A: Link externo (RECOMENDADO - sem ocupar espaço no repo)
 
-### Opção A: APK no repositório (Vercel/Netlify servem o arquivo)
+1. **Suba o APK** para um serviço de hospedagem:
+   - **Google Drive**: `https://drive.google.com/uc?export=download&id=SEU_ID`
+   - **Supabase Storage**: crie bucket público `downloads`
+   - **Dropbox**: use link direto
+   - Outro host de arquivos
 
-1. Depois de gerar o APK no Android Studio, copie o arquivo para a **raiz do projeto** (mesma pasta do `index.html`).
-2. Renomeie para **`rdr-fan-site-app.apk`** (ou use esse nome no `index.html`).
-3. Adicione e faça commit + push:
-   ```bash
-   git add rdr-fan-site-app.apk
-   git commit -m "Adicionar APK para download"
-   git push origin main
-   ```
-4. Espere o Vercel/Netlify fazer o deploy. O link `https://seu-site.vercel.app/rdr-fan-site-app.apk` passará a funcionar.
+2. **Edite o `app-download-config.json`**:
 
-### Opção B: APK em link externo (Google Drive, etc.)
+```json
+{
+  "apkUrl": "https://seu-host.com/rdr-fan-site-app.apk"
+}
+```
 
-Se não quiser colocar o APK no Git (arquivo grande ou preferir hospedar fora):
+3. **Faça deploy** do site (Vercel/Netlify)
 
-1. Envie o APK para Google Drive, Dropbox ou outro host.
-2. Obtenha o **link direto de download** (no Drive: “Obter link” → “Qualquer pessoa com o link” → em “Copiar link”, use o link de download direto se disponível; ou use serviços que geram link direto).
-3. No `index.html`, na seção **#app**, troque o `href` do botão para essa URL, por exemplo:
-   ```html
-   <a href="https://drive.google.com/uc?export=download&id=SEU_ID" download class="btn btn-primary" ...>
-   ```
-   (Substitua `SEU_ID` pelo ID do arquivo no Google Drive.)
+Pronto! O link de download funcionará em `https://seu-site.com/app-download.html`
 
-**Alternativa com config:** a página `app-download.html` também aceita um arquivo `app-download-config.json` (copie de `app-download-config.example.json`) com a chave `apkUrl` apontando para a URL do APK (ex.: Supabase Storage). Assim você não precisa commitar o APK nem editar HTML; só criar o config no servidor.
+---
+
+### Opção B: APK no repositório (Vercel/Netlify servem o arquivo)
+
+1. Copie o APK gerado para a **raiz do projeto**
+2. Renomeie para **`rdr-fan-site-app.apk`**
+3. Commit e push:
+
+```bash
+git add rdr-fan-site-app.apk app-download-config.json
+git commit -m "Adicionar APK para download"
+git push origin main
+```
+
+4. Espere o deploy. O link `https://seu-site.vercel.app/rdr-fan-site-app.apk` funcionará.
+
+---
+
+## 🔧 Comandos úteis
+
+| Ação | Comando |
+|------|---------|
+| Instalar deps | `npm install` |
+| Sincronizar Android | `npm run cap:sync` |
+| **GitHub Actions** | `git push` (build automático) |
+| Limpar build | `cd android && ./gradlew clean` |
+| Gerar APK release | `cd android && ./gradlew assembleRelease` |
+| Gerar APK debug | `cd android && ./gradlew assembleDebug` |
+
+---
+
+## 📌 Resumo do fluxo completo (GitHub Actions)
+
+```bash
+# 1. Fazer alterações no código
+# 2. Commit e push
+git add .
+git commit -m "Atualizações"
+git push origin main
+
+# 3. Aguardar build no GitHub Actions
+# https://github.com/SEU-USUARIO/SEU-REPO/actions
+
+# 4. Baixar os APKs dos artifacts
+
+# 5. Subir APK para Google Drive / Supabase
+
+# 6. Editar app-download-config.json com a URL do APK
+
+# 7. Deploy do site
+git add app-download-config.json
+git commit -m "Atualizar link do APK"
+git push
+```
+
+---
+
+## ❓ Problemas comuns
+
+### "Espaço insuficiente" na instalação
+
+- O Android precisa de **2-3x o tamanho do APK** para instalar
+- Use o APK **release por arquitetura** (arm64-v8a é o menor)
+- Limpe cache de outros apps ou mova arquivos para SD/nuvem
+
+### APK não baixa / dá 404
+
+- Verifique se o arquivo existe no repositório (Opção B)
+- Ou se a URL no `app-download-config.json` está correta (Opção A)
+
+### Gradle não encontrado
+
+- Instale o JDK 17
+- O Gradle wrapper já está incluso na pasta `android/`

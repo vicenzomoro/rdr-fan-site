@@ -3,6 +3,7 @@
   "appName": "RDR Fan Site",
   "webDir": "www",
   "server": {
+    "url": "https://rdr-fan-site-ibuu.vercel.app/",
     "androidScheme": "https"
   },
   "android": {

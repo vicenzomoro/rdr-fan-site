@@ -1,0 +1,60 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Permite rodar manualmente
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Instalar dependências
+      run: npm install
+      
+    - name: Sincronizar Capacitor
+      run: npx cap sync android
+      
+    - name: Build do APK (Release otimizado)
+      run: |
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleRelease
+        
+    - name: Upload dos APKs
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-release
+        path: android/app/build/outputs/apk/release/*.apk
+        retention-days: 30
+        
+    - name: Build do APK (Debug - alternativo)
+      if: always()
+      run: |
+        cd android
+        ./gradlew assembleDebug
+        
+    - name: Upload do APK Debug
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-debug
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 30
