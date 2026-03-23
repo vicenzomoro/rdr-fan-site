@@ -469,24 +469,33 @@
         </section>
     </main>
 
-    <div id="ai-chat-widget">
-        <button id="ai-chat-toggle" class="chat-toggle-btn">
-            <span>💬</span>
-            <span>Dutch Van Der Linde</span>
-        </button>
-        <div id="ai-chat-window" class="chat-window" style="display: none;">
-            <div class="chat-header">
-                <h3>Dutch (Assistente)</h3>
-                <button id="close-chat" class="close-btn" type="button" onclick="closeChat()" aria-label="Fechar chat">&times;</button>
-            </div>
-            <div id="chat-messages" class="chat-body">
-                <div class="ai-msg">Saudações, parceiro. Eu tenho um plano para ajudar você. O que quer saber?</div>
-            </div>
-            <div class="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Tire sua dúvida...">
-                <button id="send-chat" class="send-btn">➔</button>
-            </div>
-        </div>
+    <div id="ai-chat-widget">                                                   
+        <button id="ai-chat-toggle" class="chat-toggle-btn">                    
+            <span>🤠</span>                                                      
+            <span>Fale com Dutch</span>                                    
+        </button>                                                               
+        <div id="ai-chat-window" class="chat-window" style="display: none;">    
+            <div class="chat-header">                                           
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="dutch-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #d4af37, #8b4513); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: 2px solid #fff;">🤠</div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 0.95rem;">Dutch Van Der Linde</h3>
+                        <small style="color: #cbbba0; font-size: 0.75rem;">Líder da Gangue</small>
+                    </div>
+                </div>
+                <button id="close-chat" class="close-btn" type="button" onclick="closeChat()" aria-label="Fechar chat">&times;</button>                         
+            </div>                                                              
+            <div id="chat-messages" class="chat-body">                          
+                <div class="ai-msg">
+                    <div class="ai-msg-avatar" style="font-size: 1.2rem; margin-bottom: 5px;">🤠</div>
+                    <div class="content">Saudações, parceiro. Eu tenho um plano para ajudar você. Tire suas dúvidas sobre o jogo, e quem sabe... possamos encontrar redenção juntos. O que quer saber?</div>
+                </div>
+            </div>                                                              
+            <div class="chat-input-area">                                       
+                <input type="text" id="chat-input" placeholder="Tire sua dúvida, parceiro...">
+                <button id="send-chat" class="send-btn">➔</button>              
+            </div>                                                              
+        </div>                                                                  
     </div>
 
     <!-- Discord Widget -->

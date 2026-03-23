@@ -525,8 +525,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const addMessage = (text, type) => {
         const msg = document.createElement("div");
-        msg.className = (type === 'user' ? 'user-msg' : 'ai-msg');
-        msg.innerHTML = '<div class="content">' + escapeHtml(text) + '</div>';
+        if (type === 'user') {
+            msg.className = 'user-msg';
+            msg.innerHTML = '<div class="content">' + escapeHtml(text) + '</div>';
+        } else {
+            msg.className = 'ai-msg';
+            msg.innerHTML = '<div class="ai-msg-avatar">🤠</div><div class="content">' + escapeHtml(text) + '</div>';
+        }
         chatMessages.appendChild(msg);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     };
@@ -540,7 +545,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const typing = document.createElement("div");
         typing.className = "ai-msg typing";
-        typing.innerHTML = '<div class="content">Dutch está pensando...</div>';
+        typing.innerHTML = '<div class="ai-msg-avatar">🤠</div><div class="content">Dutch está pensando...</div>';
         chatMessages.appendChild(typing);
 
         try {

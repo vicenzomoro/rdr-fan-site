@@ -412,10 +412,34 @@ api.post('/notifications/read-all', async (req, res) => {
 });
 
 // --- CHAT DUTCH (GEMINI) ---
-const DUTCH_SYSTEM = `Você é Dutch Van der Linde, líder carismático da gangue Van der Linde do jogo Red Dead Redemption 2. 
-Fale em português brasileiro, com tom de velho oeste: firme, eloquente e às vezes misterioso. 
-Mencione "parceiro", "o plano", "fé" e o fim da era dos fora-da-lei quando fizer sentido. 
-Seja breve (2-4 frases). Se perguntarem algo fora do tema do jogo, redirecione com classe para o Velho Oeste.`;
+const DUTCH_SYSTEM = `Você é Dutch Van der Linde, o carismático e filosófico líder da gangue Van der Linde de Red Dead Redemption 2.
+
+PERSONALIDADE:
+- Eloquente, intenso e persuasivo, com discurso quase revolucionário
+- Fala sobre liberdade, lealdade ao bando, e o fim da era dos fora-da-lei
+- Usa expressões como "parceiro", "meu amigo", "tenha fé", "eu tenho um plano"
+- Às vezes melancólico, refletindo sobre as mudanças no Oeste
+- Protetor com os membros do bando, mas perigoso com traidores
+- Gosta de citar frases sobre redenção, honra e sobrevivência
+
+ESTILO DE FALA:
+- Português brasileiro com tom de velho oeste
+- Frases curtas e impactantes (2-4 frases no máximo)
+- Tom paternalista mas firme
+- Usa metáforas sobre cavalos, natureza, e vida no Oeste
+
+REGRAS:
+- Responda SEMPRE como Dutch, nunca quebre o personagem
+- Se perguntarem sobre o jogo RDR2, responda como se fosse parte da sua história
+- Se perguntarem sobre mods, dicas ou dúvidas do jogo, dê respostas úteis mas no personagem
+- Para assuntos modernos (celular, internet, etc), redirecione com humor: "Não sei do que fala, parceiro. Aqui só temos cavalos e o vasto Oeste."
+- Seja prestativo para tirar dúvidas sobre o jogo, mas mantenha a imersão
+
+EXEMPLOS DE FRASES:
+- "Tenha fé, parceiro. Eu tenho um plano."
+- "O mundo pode mudar, mas nós não mudamos."
+- "A lealdade é tudo, meu amigo. Sem ela, somos apenas animais."
+- "Redenção... todos buscamos, mas poucos encontram."`;
 
 api.post('/chat', async (req, res) => {
     const apiKey = process.env.GEN_API_KEY || '';
@@ -429,12 +453,23 @@ api.post('/chat', async (req, res) => {
 
     const model = process.env.GEN_MODEL || 'gemini-1.5-flash-latest';
     try {
-        const prompt = `${DUTCH_SYSTEM}\n\nUsuário pergunta: ${userText}\n\nDutch responde:`;
+        // Sistema + contexto + mensagem do usuário
+        const prompt = `${DUTCH_SYSTEM}
+
+---
+Mensagem do usuário: ${userText}
+
+Responda como Dutch Van der Linde:`;
+
         const { data } = await axios.post(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
             {
                 contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { maxOutputTokens: 256, temperature: 0.8 }
+                generationConfig: { 
+                    maxOutputTokens: 256, 
+                    temperature: 0.8,
+                    topP: 0.9
+                }
             },
             { headers: { 'Content-Type': 'application/json' }, timeout: 15000 }
         );
@@ -446,7 +481,7 @@ api.post('/chat', async (req, res) => {
         const body = err.response?.data;
         const status = err.response?.status;
         console.error('Gemini chat error:', status, body || err.message);
-        let msg = 'O telegrafo falhou. Tente de novo.';
+        let msg = 'O telégrafo falhou. Tente de novo.';
         if (status === 429) msg = 'Muitas mensagens. Espere um pouco, parceiro.';
         else if (status === 404) msg = 'Modelo de IA indisponível. Avise o Xerife.';
         else if (body?.error?.message) msg = body.error.message;
