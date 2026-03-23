@@ -451,7 +451,7 @@ api.post('/chat', async (req, res) => {
     const userText = message.trim().slice(0, 500);
     if (!userText) return res.status(400).json({ error: 'Mensagem vazia.' });
 
-    const model = process.env.GEN_MODEL || 'gemini-1.5-flash-latest';
+    const model = process.env.GEN_MODEL || 'gemini-2.0-flash-exp';
     try {
         // Sistema + contexto + mensagem do usuário
         const prompt = `${DUTCH_SYSTEM}
@@ -465,8 +465,8 @@ Responda como Dutch Van der Linde:`;
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
             {
                 contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { 
-                    maxOutputTokens: 256, 
+                generationConfig: {
+                    maxOutputTokens: 256,
                     temperature: 0.8,
                     topP: 0.9
                 }
