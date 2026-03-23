@@ -451,7 +451,10 @@ api.post('/chat', async (req, res) => {
     const userText = message.trim().slice(0, 500);
     if (!userText) return res.status(400).json({ error: 'Mensagem vazia.' });
 
-    const model = process.env.GEN_MODEL || 'gemini-2.0-flash-exp';
+    // Usa modelo estável: gemini-1.5-flash é o mais confiável atualmente
+    const model = 'gemini-1.5-flash';
+    console.log('[Chat Dutch] Modelo:', model, '| API Key configurada:', !!apiKey);
+    
     try {
         // Sistema + contexto + mensagem do usuário
         const prompt = `${DUTCH_SYSTEM}
@@ -480,7 +483,7 @@ Responda como Dutch Van der Linde:`;
     } catch (err) {
         const body = err.response?.data;
         const status = err.response?.status;
-        console.error('Gemini chat error:', status, body || err.message);
+        console.error('[Chat Dutch] Erro:', status, body || err.message);
         let msg = 'O telégrafo falhou. Tente de novo.';
         if (status === 429) msg = 'Muitas mensagens. Espere um pouco, parceiro.';
         else if (status === 404) msg = 'Modelo de IA indisponível. Avise o Xerife.';
