@@ -484,9 +484,20 @@ Responda como Dutch Van der Linde:`;
         const body = err.response?.data;
         const status = err.response?.status;
         console.error('[Chat Dutch] Erro:', status, body || err.message);
+        console.error('[Chat Dutch] Detalhes:', JSON.stringify(body, null, 2));
         let msg = 'O telégrafo falhou. Tente de novo.';
         if (status === 429) msg = 'Muitas mensagens. Espere um pouco, parceiro.';
-        else if (status === 404) msg = 'Modelo de IA indisponível. Avise o Xerife.';
+        else if (status === 404) {
+            const errorCode = body?.error?.code;
+            const errorMsg = body?.error?.message;
+            console.error('[Chat Dutch] Erro 404 - Code:', errorCode, '| Message:', errorMsg);
+            msg = `Erro na API: ${errorMsg || 'Modelo indisponível'}. Verifique a chave no painel do Xerife.`;
+        }
+        else if (status === 403) {
+            const errorMsg = body?.error?.message;
+            console.error('[Chat Dutch] Erro 403 - Acesso negado:', errorMsg);
+            msg = `Acesso negado: ${errorMsg || 'Chave inválida'}. Verifique no painel do Xerife.`;
+        }
         else if (body?.error?.message) msg = body.error.message;
         res.status(status || 500).json({ error: msg });
     }
